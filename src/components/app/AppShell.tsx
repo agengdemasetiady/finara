@@ -156,14 +156,18 @@ export default function AppShell({ akun, categories, unreadNotifCount, children 
           <Link
             href={isAdmin ? '/admin' : '/dashboard'}
             onClick={() => setPendingPath(isAdmin ? '/admin' : '/dashboard')}
-            className="fn-display text-2xl font-bold px-2 py-1 inline-flex items-baseline whitespace-nowrap"
+            className={`fn-display text-2xl font-bold py-1 inline-flex items-baseline whitespace-nowrap transition-all duration-300 ${
+              profileMenuOpen
+                ? 'px-3'
+                : 'pl-[18px] pr-3 group-hover:px-3 group-focus-within:px-3'
+            }`}
           >
             <span>f</span>
             <span
-              className={`transition-opacity duration-200 ${
+              className={`overflow-hidden transition-all duration-200 ${
                 profileMenuOpen
-                  ? 'opacity-100'
-                  : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'
+                  ? 'max-w-[100px] opacity-100'
+                  : 'max-w-0 opacity-0 group-hover:max-w-[100px] group-hover:opacity-100 group-focus-within:max-w-[100px] group-focus-within:opacity-100'
               }`}
             >
               inara
