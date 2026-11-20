@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { MagnifyingGlass, PencilSimple, Trash, X } from '@phosphor-icons/react';
 import { ubahTransaksi, hapusTransaksi } from '@/lib/actions/transaksi';
 import { useToast } from '@/components/ui/ToastProvider';
@@ -41,6 +42,12 @@ export function TransaksiClient({
 
   // Konfirmasi hapus
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  // State portal agar modal tampil penuh di atas navbar
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const katMap = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
 
@@ -291,113 +298,122 @@ export function TransaksiClient({
       )}
 
       {/* Modal Edit Transaksi */}
-      {editing && (
-        <div
-          className="fixed inset-0 z-[100] flex items-center justify-center p-4"
-          style={{ backgroundColor: 'rgba(13, 23, 19, 0.55)', backdropFilter: 'blur(4px)' }}
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setEditing(null);
-          }}
-        >
+      {mounted &&
+        editing &&
+        createPortal(
           <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="edit-trx-title"
-            className="w-full max-w-md rounded-3xl p-6 border shadow-xl"
-            style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
+            className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center sm:p-4"
+            style={{ backgroundColor: 'rgba(13, 23, 19, 0.55)', backdropFilter: 'blur(4px)' }}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setEditing(null);
+            }}
           >
-            <div className="flex items-center justify-between mb-4">
-              <h2 id="edit-trx-title" className="fn-display text-lg font-semibold">
-                Edit transaksi
-              </h2>
-              <button
-                type="button"
-                onClick={() => setEditing(null)}
-                aria-label="Tutup"
-                className="w-8 h-8 rounded-full inline-flex items-center justify-center"
-                style={{ backgroundColor: 'var(--bg)' }}
-              >
-                <X size={16} />
-              </button>
-            </div>
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="edit-trx-title"
+              className="w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] border-t sm:border shadow-2xl max-h-[90dvh] overflow-y-auto"
+              style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
+            >
+              {/* Handle bar visual khusus tampilan mobile */}
+              <div
+                className="w-10 h-1 rounded-full mx-auto mb-4 sm:hidden opacity-40"
+                style={{ backgroundColor: 'var(--muted)' }}
+              />
 
-            <form onSubmit={handleSaveEdit} className="flex flex-col gap-3.5">
-              <div className="grid grid-cols-2 p-1 rounded-full" style={{ backgroundColor: 'var(--bg)' }}>
-                {(['PENGELUARAN', 'PEMASUKAN'] as const).map((item) => (
-                  <button
-                    key={item}
-                    type="button"
-                    onClick={() => {
-                      setEditJenis(item);
-                      const first = categories.find((c) => c.jenis === item);
-                      if (first) setEditKat(first.id);
-                    }}
-                    className="py-2 rounded-full text-xs font-semibold cursor-pointer"
-                    style={{
-                      backgroundColor: editJenis === item ? 'var(--primary)' : 'transparent',
-                      color: editJenis === item ? 'var(--on-primary)' : 'var(--muted)',
-                    }}
-                  >
-                    {item === 'PENGELUARAN' ? 'Pengeluaran' : 'Pemasukan'}
-                  </button>
-                ))}
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold mb-1">Nominal (Rp)</label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={editDigits ? formatAngka(editDigits) : ''}
-                  onChange={(e) => setEditDigits(e.target.value.replace(/\D/g, '').slice(0, 12))}
-                  className="fn-input font-semibold fn-num"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold mb-1">Kategori</label>
-                <select
-                  value={editKat}
-                  onChange={(e) => setEditKat(e.target.value)}
-                  className="fn-input"
+              <div className="flex items-center justify-between mb-4">
+                <h2 id="edit-trx-title" className="fn-display text-lg font-semibold">
+                  Edit transaksi
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setEditing(null)}
+                  aria-label="Tutup"
+                  className="w-8 h-8 rounded-full inline-flex items-center justify-center cursor-pointer"
+                  style={{ backgroundColor: 'var(--bg)' }}
                 >
-                  {editFilteredCats.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.nama}
-                    </option>
+                  <X size={16} />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveEdit} className="flex flex-col gap-3.5">
+                <div className="grid grid-cols-2 p-1 rounded-full" style={{ backgroundColor: 'var(--bg)' }}>
+                  {(['PENGELUARAN', 'PEMASUKAN'] as const).map((item) => (
+                    <button
+                      key={item}
+                      type="button"
+                      onClick={() => {
+                        setEditJenis(item);
+                        const first = categories.find((c) => c.jenis === item);
+                        if (first) setEditKat(first.id);
+                      }}
+                      className="py-2 rounded-full text-xs font-semibold cursor-pointer transition-colors"
+                      style={{
+                        backgroundColor: editJenis === item ? 'var(--primary)' : 'transparent',
+                        color: editJenis === item ? 'var(--on-primary)' : 'var(--muted)',
+                      }}
+                    >
+                      {item === 'PENGELUARAN' ? 'Pengeluaran' : 'Pemasukan'}
+                    </button>
                   ))}
-                </select>
-              </div>
+                </div>
 
-              <div>
-                <label className="block text-xs font-semibold mb-1">Tanggal</label>
-                <input
-                  type="date"
-                  value={editTanggal}
-                  onChange={(e) => setEditTanggal(e.target.value)}
-                  className="fn-input"
-                />
-              </div>
+                <div>
+                  <label className="block text-xs font-semibold mb-1">Nominal (Rp)</label>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={editDigits ? formatAngka(editDigits) : ''}
+                    onChange={(e) => setEditDigits(e.target.value.replace(/\D/g, '').slice(0, 12))}
+                    className="fn-input font-semibold fn-num"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-xs font-semibold mb-1">Catatan</label>
-                <input
-                  type="text"
-                  maxLength={200}
-                  value={editCatatan}
-                  onChange={(e) => setEditCatatan(e.target.value)}
-                  placeholder="Opsional"
-                  className="fn-input"
-                />
-              </div>
+                <div>
+                  <label className="block text-xs font-semibold mb-1">Kategori</label>
+                  <select
+                    value={editKat}
+                    onChange={(e) => setEditKat(e.target.value)}
+                    className="fn-input"
+                  >
+                    {editFilteredCats.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.nama}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-              <button type="submit" disabled={savingEdit} className="fn-btn fn-btn-primary w-full mt-1">
-                {savingEdit ? 'Menyimpan...' : 'Simpan perubahan'}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
+                <div>
+                  <label className="block text-xs font-semibold mb-1">Tanggal</label>
+                  <input
+                    type="date"
+                    value={editTanggal}
+                    onChange={(e) => setEditTanggal(e.target.value)}
+                    className="fn-input"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold mb-1">Catatan</label>
+                  <input
+                    type="text"
+                    maxLength={200}
+                    value={editCatatan}
+                    onChange={(e) => setEditCatatan(e.target.value)}
+                    placeholder="Opsional"
+                    className="fn-input"
+                  />
+                </div>
+
+                <button type="submit" disabled={savingEdit} className="fn-btn fn-btn-primary w-full mt-2">
+                  {savingEdit ? 'Menyimpan...' : 'Simpan perubahan'}
+                </button>
+              </form>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }
