@@ -60,6 +60,8 @@ export function SevenDayChart({ data }: { data: TitikHarian[] }) {
               fontSize: 12,
               color: 'var(--ink)',
             }}
+            itemStyle={{ color: 'var(--ink)', fontWeight: 600 }}
+            labelStyle={{ color: 'var(--muted)', marginBottom: 2 }}
             formatter={(val: number) => [formatRupiah(val), 'Pengeluaran']}
             labelFormatter={(_, payload) => payload?.[0]?.payload?.hariLengkap || ''}
           />
@@ -97,6 +99,8 @@ export function MonthlyTrendChart({ data }: { data: TrenBulanItem[] }) {
               fontSize: 12,
               color: 'var(--ink)',
             }}
+            itemStyle={{ color: 'var(--ink)', fontWeight: 600 }}
+            labelStyle={{ color: 'var(--muted)', marginBottom: 2 }}
             formatter={(val: number, name: string) => [
               formatRupiah(val),
               name === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran',
@@ -104,7 +108,7 @@ export function MonthlyTrendChart({ data }: { data: TrenBulanItem[] }) {
           />
           <Legend
             formatter={(val) => (val === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran')}
-            wrapperStyle={{ fontSize: 12 }}
+            wrapperStyle={{ fontSize: 12, color: 'var(--muted)' }}
           />
           <Bar dataKey="pemasukan" fill="var(--primary)" radius={[6, 6, 2, 2]} maxBarSize={24} />
           <Bar dataKey="pengeluaran" fill="var(--accent)" radius={[6, 6, 2, 2]} maxBarSize={24} />
