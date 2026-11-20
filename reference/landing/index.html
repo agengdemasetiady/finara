@@ -1,20 +1,26 @@
 <!-- index.html -->
 <!doctype html>
 <html lang="id">
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Finara — Uangmu jelas, bulananmu aman.</title>
-  <meta name="description" content="Finara membantu pelajar, anak kos, dan pelaku UMKM mencatat uang masuk dan keluar, menjaga anggaran, lalu menjelaskan ke mana uangmu pergi dengan bahasa yang mudah dipahami.">
+  <title>Finara - Uangmu jelas, bulananmu aman.</title>
+  <meta name="description"
+    content="Finara membantu pelajar, anak kos, dan pelaku UMKM mencatat uang masuk dan keluar, menjaga anggaran, lalu menjelaskan ke mana uangmu pergi dengan bahasa yang mudah dipahami.">
   <meta name="theme-color" id="meta-theme" content="#F6F7F2">
   <meta property="og:type" content="website">
   <meta property="og:title" content="Finara — Uangmu jelas, bulananmu aman.">
-  <meta property="og:description" content="Catat uang masuk dan keluar, jaga anggaran, dan pahami ke mana uangmu pergi. Untuk pelajar, anak kos, dan pelaku UMKM.">
+  <meta property="og:description"
+    content="Catat uang masuk dan keluar, jaga anggaran, dan pahami ke mana uangmu pergi. Untuk pelajar, anak kos, dan pelaku UMKM.">
   <meta property="og:locale" content="id_ID">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230B5C46'/%3E%3Ctext x='18' y='47' font-family='system-ui,sans-serif' font-weight='700' font-size='40' fill='%23fff'%3Ef%3C/text%3E%3Ccircle cx='45' cy='43' r='5' fill='%23F2B33D'/%3E%3C/svg%3E">
+  <link rel="icon"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230B5C46'/%3E%3Ctext x='18' y='47' font-family='system-ui,sans-serif' font-weight='700' font-size='40' fill='%23fff'%3Ef%3C/text%3E%3Ccircle cx='45' cy='43' r='5' fill='%23F2B33D'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap"
+    rel="stylesheet">
   <script>
     document.documentElement.classList.add('js');
     (() => {
@@ -23,29 +29,69 @@
         if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
           document.documentElement.dataset.theme = 'dark';
         }
-      } catch (e) {}
+      } catch (e) { }
     })();
   </script>
-  <link rel="stylesheet" href="style.css?v=5">
-  <script src="main.js?v=5" defer></script>
+  <link rel="stylesheet" href="style.css?v=7">
+  <script src="main.js?v=6" defer></script>
 </head>
+
 <body>
   <a class="skip-link" href="#main">Lewati ke konten utama</a>
 
   <svg width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute;overflow:hidden">
-    <symbol id="i-wallet" viewBox="0 0 256 256"><path d="M216,64H56a8,8,0,0,1,0-16H192a8,8,0,0,0,0-16H56A24,24,0,0,0,32,56V184a24,24,0,0,0,24,24H216a16,16,0,0,0,16-16V80A16,16,0,0,0,216,64Zm0,128H56a8,8,0,0,1-8-8V78.63A23.84,23.84,0,0,0,56,80H216Zm-48-60a12,12,0,1,1,12,12A12,12,0,0,1,168,132Z"/></symbol>
-    <symbol id="i-chart" viewBox="0 0 256 256"><path d="M224,200h-8V40a8,8,0,0,0-8-8H152a8,8,0,0,0-8,8V80H96a8,8,0,0,0-8,8v40H48a8,8,0,0,0-8,8v64H32a8,8,0,0,0,0,16H224a8,8,0,0,0,0-16ZM160,48h40V200H160ZM104,96h40V200H104ZM56,144H88v56H56Z"/></symbol>
-    <symbol id="i-target" viewBox="0 0 256 256"><path d="M221.87,83.16A104.1,104.1,0,1,1,195.67,49l22.67-22.68a8,8,0,0,1,11.32,11.32l-96,96a8,8,0,0,1-11.32-11.32l27.72-27.72a40,40,0,1,0,17.87,31.09,8,8,0,1,1,16-.9,56,56,0,1,1-22.38-41.65L184.3,60.39a87.88,87.88,0,1,0,23.13,29.67,8,8,0,0,1,14.44-6.9Z"/></symbol>
-    <symbol id="i-bell" viewBox="0 0 256 256"><path d="M221.8,175.94C216.25,166.38,208,139.33,208,104a80,80,0,1,0-160,0c0,35.34-8.26,62.38-13.81,71.94A16,16,0,0,0,48,200H88.81a40,40,0,0,0,78.38,0H208a16,16,0,0,0,13.8-24.06ZM128,216a24,24,0,0,1-22.62-16h45.24A24,24,0,0,1,128,216ZM48,184c7.7-13.24,16-43.92,16-80a64,64,0,1,1,128,0c0,36.05,8.28,66.73,16,80Z"/></symbol>
-    <symbol id="i-bulb" viewBox="0 0 256 256"><path d="M176,232a8,8,0,0,1-8,8H88a8,8,0,0,1,0-16h80A8,8,0,0,1,176,232Zm40-128a87.55,87.55,0,0,1-33.64,69.21A16.24,16.24,0,0,0,176,186v6a16,16,0,0,1-16,16H96a16,16,0,0,1-16-16v-6a16,16,0,0,0-6.23-12.66A87.59,87.59,0,0,1,40,104.49C39.74,56.83,78.26,17.14,125.88,16A88,88,0,0,1,216,104Zm-16,0a72,72,0,0,0-73.74-72c-39,.92-70.47,33.39-70.26,72.39a71.65,71.65,0,0,0,27.64,56.3A32,32,0,0,1,96,186v6h64v-6a32.15,32.15,0,0,1,12.47-25.35A71.65,71.65,0,0,0,200,104Zm-16.11-9.34a57.6,57.6,0,0,0-46.56-46.55,8,8,0,0,0-2.66,15.78c16.57,2.79,30.63,16.85,33.44,33.45A8,8,0,0,0,176,104a9,9,0,0,0,1.35-.11A8,8,0,0,0,183.89,94.66Z"/></symbol>
-    <symbol id="i-shield" viewBox="0 0 256 256"><path d="M208,40H48A16,16,0,0,0,32,56v56c0,52.72,25.52,84.67,46.93,102.19,23.06,18.86,46,25.26,47,25.53a8,8,0,0,0,4.2,0c1-.27,23.91-6.67,47-25.53C198.48,196.67,224,164.72,224,112V56A16,16,0,0,0,208,40Zm0,72c0,37.07-13.66,67.16-40.6,89.42A129.3,129.3,0,0,1,128,223.62a128.25,128.25,0,0,1-38.92-21.81C61.82,179.51,48,149.3,48,112l0-56,160,0ZM82.34,141.66a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32l-56,56a8,8,0,0,1-11.32,0Z"/></symbol>
-    <symbol id="i-download" viewBox="0 0 256 256"><path d="M224,144v64a8,8,0,0,1-8,8H40a8,8,0,0,1-8-8V144a8,8,0,0,1,16,0v56H208V144a8,8,0,0,1,16,0Zm-101.66,5.66a8,8,0,0,0,11.32,0l40-40a8,8,0,0,0-11.32-11.32L136,124.69V32a8,8,0,0,0-16,0v92.69L93.66,98.34a8,8,0,0,0-11.32,11.32Z"/></symbol>
-    <symbol id="i-check" viewBox="0 0 256 256"><path d="M229.66,77.66l-128,128a8,8,0,0,1-11.32,0l-56-56a8,8,0,0,1,11.32-11.32L96,188.69,218.34,66.34a8,8,0,0,1,11.32,11.32Z"/></symbol>
-    <symbol id="i-graduation" viewBox="0 0 256 256"><path d="M251.76,88.94l-120-64a8,8,0,0,0-7.52,0l-120,64a8,8,0,0,0,0,14.12L32,117.87v48.42a15.91,15.91,0,0,0,4.06,10.65C49.16,191.53,78.51,216,128,216a130,130,0,0,0,48-8.76V240a8,8,0,0,0,16,0V199.51a115.63,115.63,0,0,0,27.94-22.57A15.91,15.91,0,0,0,224,166.29V117.87l27.76-14.81a8,8,0,0,0,0-14.12ZM128,200c-43.27,0-68.72-21.14-80-33.71V126.4l76.24,40.66a8,8,0,0,0,7.52,0L176,143.47v46.34C163.4,195.69,147.52,200,128,200Zm80-33.75a97.83,97.83,0,0,1-16,14.25V134.93l16-8.53ZM188,118.94l-.22-.13-56-29.87a8,8,0,0,0-7.52,14.12L171,128l-43,22.93L25,96,128,41.07,231,96Z"/></symbol>
-    <symbol id="i-house" viewBox="0 0 256 256"><path d="M219.31,108.68l-80-80a16,16,0,0,0-22.62,0l-80,80A15.87,15.87,0,0,0,32,120v96a8,8,0,0,0,8,8h64a8,8,0,0,0,8-8V160h32v56a8,8,0,0,0,8,8h64a8,8,0,0,0,8-8V120A15.87,15.87,0,0,0,219.31,108.68ZM208,208H160V152a8,8,0,0,0-8-8H104a8,8,0,0,0-8,8v56H48V120l80-80,80,80Z"/></symbol>
-    <symbol id="i-storefront" viewBox="0 0 256 256"><path d="M232,96a7.89,7.89,0,0,0-.3-2.2L217.35,43.6A16.07,16.07,0,0,0,202,32H54A16.07,16.07,0,0,0,38.65,43.6L24.31,93.8A7.89,7.89,0,0,0,24,96h0v16a40,40,0,0,0,16,32v72a8,8,0,0,0,8,8H208a8,8,0,0,0,8-8V144a40,40,0,0,0,16-32V96ZM54,48H202l11.42,40H42.61Zm50,56h48v8a24,24,0,0,1-48,0Zm-16,0v8a24,24,0,0,1-35.12,21.26,7.88,7.88,0,0,0-1.82-1.06A24,24,0,0,1,40,112v-8ZM200,208H56V151.2a40.57,40.57,0,0,0,8,.8,40,40,0,0,0,32-16,40,40,0,0,0,64,0,40,40,0,0,0,32,16,40.57,40.57,0,0,0,8-.8Zm4.93-75.8a8.08,8.08,0,0,0-1.8,1.05A24,24,0,0,1,168,112v-8h48v8A24,24,0,0,1,204.93,132.2Z"/></symbol>
-    <symbol id="i-list-bullets" viewBox="0 0 256 256"><path d="M80,64a8,8,0,0,1,8-8H216a8,8,0,0,1,0,16H88A8,8,0,0,1,80,64Zm136,56H88a8,8,0,0,0,0,16H216a8,8,0,0,0,0-16Zm0,64H88a8,8,0,0,0,0,16H216a8,8,0,0,0,0-16ZM44,52A12,12,0,1,0,56,64,12,12,0,0,0,44,52Zm0,64a12,12,0,1,0,12,12A12,12,0,0,0,44,116Zm0,64a12,12,0,1,0,12,12A12,12,0,0,0,44,180Z"/></symbol>
-    <symbol id="i-list" viewBox="0 0 256 256"><path d="M224,128a8,8,0,0,1-8,8H40a8,8,0,0,1,0-16H216A8,8,0,0,1,224,128ZM40,72H216a8,8,0,0,0,0-16H40a8,8,0,0,0,0,16ZM216,184H40a8,8,0,0,0,0,16H216a8,8,0,0,0,0-16Z"/></symbol>
+    <symbol id="i-wallet" viewBox="0 0 256 256">
+      <path
+        d="M216,64H56a8,8,0,0,1,0-16H192a8,8,0,0,0,0-16H56A24,24,0,0,0,32,56V184a24,24,0,0,0,24,24H216a16,16,0,0,0,16-16V80A16,16,0,0,0,216,64Zm0,128H56a8,8,0,0,1-8-8V78.63A23.84,23.84,0,0,0,56,80H216Zm-48-60a12,12,0,1,1,12,12A12,12,0,0,1,168,132Z" />
+    </symbol>
+    <symbol id="i-chart" viewBox="0 0 256 256">
+      <path
+        d="M224,200h-8V40a8,8,0,0,0-8-8H152a8,8,0,0,0-8,8V80H96a8,8,0,0,0-8,8v40H48a8,8,0,0,0-8,8v64H32a8,8,0,0,0,0,16H224a8,8,0,0,0,0-16ZM160,48h40V200H160ZM104,96h40V200H104ZM56,144H88v56H56Z" />
+    </symbol>
+    <symbol id="i-target" viewBox="0 0 256 256">
+      <path
+        d="M221.87,83.16A104.1,104.1,0,1,1,195.67,49l22.67-22.68a8,8,0,0,1,11.32,11.32l-96,96a8,8,0,0,1-11.32-11.32l27.72-27.72a40,40,0,1,0,17.87,31.09,8,8,0,1,1,16-.9,56,56,0,1,1-22.38-41.65L184.3,60.39a87.88,87.88,0,1,0,23.13,29.67,8,8,0,0,1,14.44-6.9Z" />
+    </symbol>
+    <symbol id="i-bell" viewBox="0 0 256 256">
+      <path
+        d="M221.8,175.94C216.25,166.38,208,139.33,208,104a80,80,0,1,0-160,0c0,35.34-8.26,62.38-13.81,71.94A16,16,0,0,0,48,200H88.81a40,40,0,0,0,78.38,0H208a16,16,0,0,0,13.8-24.06ZM128,216a24,24,0,0,1-22.62-16h45.24A24,24,0,0,1,128,216ZM48,184c7.7-13.24,16-43.92,16-80a64,64,0,1,1,128,0c0,36.05,8.28,66.73,16,80Z" />
+    </symbol>
+    <symbol id="i-bulb" viewBox="0 0 256 256">
+      <path
+        d="M176,232a8,8,0,0,1-8,8H88a8,8,0,0,1,0-16h80A8,8,0,0,1,176,232Zm40-128a87.55,87.55,0,0,1-33.64,69.21A16.24,16.24,0,0,0,176,186v6a16,16,0,0,1-16,16H96a16,16,0,0,1-16-16v-6a16,16,0,0,0-6.23-12.66A87.59,87.59,0,0,1,40,104.49C39.74,56.83,78.26,17.14,125.88,16A88,88,0,0,1,216,104Zm-16,0a72,72,0,0,0-73.74-72c-39,.92-70.47,33.39-70.26,72.39a71.65,71.65,0,0,0,27.64,56.3A32,32,0,0,1,96,186v6h64v-6a32.15,32.15,0,0,1,12.47-25.35A71.65,71.65,0,0,0,200,104Zm-16.11-9.34a57.6,57.6,0,0,0-46.56-46.55,8,8,0,0,0-2.66,15.78c16.57,2.79,30.63,16.85,33.44,33.45A8,8,0,0,0,176,104a9,9,0,0,0,1.35-.11A8,8,0,0,0,183.89,94.66Z" />
+    </symbol>
+    <symbol id="i-shield" viewBox="0 0 256 256">
+      <path
+        d="M208,40H48A16,16,0,0,0,32,56v56c0,52.72,25.52,84.67,46.93,102.19,23.06,18.86,46,25.26,47,25.53a8,8,0,0,0,4.2,0c1-.27,23.91-6.67,47-25.53C198.48,196.67,224,164.72,224,112V56A16,16,0,0,0,208,40Zm0,72c0,37.07-13.66,67.16-40.6,89.42A129.3,129.3,0,0,1,128,223.62a128.25,128.25,0,0,1-38.92-21.81C61.82,179.51,48,149.3,48,112l0-56,160,0ZM82.34,141.66a8,8,0,0,1,11.32-11.32L112,148.69l50.34-50.35a8,8,0,0,1,11.32,11.32l-56,56a8,8,0,0,1-11.32,0Z" />
+    </symbol>
+    <symbol id="i-download" viewBox="0 0 256 256">
+      <path
+        d="M224,144v64a8,8,0,0,1-8,8H40a8,8,0,0,1-8-8V144a8,8,0,0,1,16,0v56H208V144a8,8,0,0,1,16,0Zm-101.66,5.66a8,8,0,0,0,11.32,0l40-40a8,8,0,0,0-11.32-11.32L136,124.69V32a8,8,0,0,0-16,0v92.69L93.66,98.34a8,8,0,0,0-11.32,11.32Z" />
+    </symbol>
+    <symbol id="i-check" viewBox="0 0 256 256">
+      <path
+        d="M229.66,77.66l-128,128a8,8,0,0,1-11.32,0l-56-56a8,8,0,0,1,11.32-11.32L96,188.69,218.34,66.34a8,8,0,0,1,11.32,11.32Z" />
+    </symbol>
+    <symbol id="i-graduation" viewBox="0 0 256 256">
+      <path
+        d="M251.76,88.94l-120-64a8,8,0,0,0-7.52,0l-120,64a8,8,0,0,0,0,14.12L32,117.87v48.42a15.91,15.91,0,0,0,4.06,10.65C49.16,191.53,78.51,216,128,216a130,130,0,0,0,48-8.76V240a8,8,0,0,0,16,0V199.51a115.63,115.63,0,0,0,27.94-22.57A15.91,15.91,0,0,0,224,166.29V117.87l27.76-14.81a8,8,0,0,0,0-14.12ZM128,200c-43.27,0-68.72-21.14-80-33.71V126.4l76.24,40.66a8,8,0,0,0,7.52,0L176,143.47v46.34C163.4,195.69,147.52,200,128,200Zm80-33.75a97.83,97.83,0,0,1-16,14.25V134.93l16-8.53ZM188,118.94l-.22-.13-56-29.87a8,8,0,0,0-7.52,14.12L171,128l-43,22.93L25,96,128,41.07,231,96Z" />
+    </symbol>
+    <symbol id="i-house" viewBox="0 0 256 256">
+      <path
+        d="M219.31,108.68l-80-80a16,16,0,0,0-22.62,0l-80,80A15.87,15.87,0,0,0,32,120v96a8,8,0,0,0,8,8h64a8,8,0,0,0,8-8V160h32v56a8,8,0,0,0,8,8h64a8,8,0,0,0,8-8V120A15.87,15.87,0,0,0,219.31,108.68ZM208,208H160V152a8,8,0,0,0-8-8H104a8,8,0,0,0-8,8v56H48V120l80-80,80,80Z" />
+    </symbol>
+    <symbol id="i-storefront" viewBox="0 0 256 256">
+      <path
+        d="M232,96a7.89,7.89,0,0,0-.3-2.2L217.35,43.6A16.07,16.07,0,0,0,202,32H54A16.07,16.07,0,0,0,38.65,43.6L24.31,93.8A7.89,7.89,0,0,0,24,96h0v16a40,40,0,0,0,16,32v72a8,8,0,0,0,8,8H208a8,8,0,0,0,8-8V144a40,40,0,0,0,16-32V96ZM54,48H202l11.42,40H42.61Zm50,56h48v8a24,24,0,0,1-48,0Zm-16,0v8a24,24,0,0,1-35.12,21.26,7.88,7.88,0,0,0-1.82-1.06A24,24,0,0,1,40,112v-8ZM200,208H56V151.2a40.57,40.57,0,0,0,8,.8,40,40,0,0,0,32-16,40,40,0,0,0,64,0,40,40,0,0,0,32,16,40.57,40.57,0,0,0,8-.8Zm4.93-75.8a8.08,8.08,0,0,0-1.8,1.05A24,24,0,0,1,168,112v-8h48v8A24,24,0,0,1,204.93,132.2Z" />
+    </symbol>
+    <symbol id="i-list-bullets" viewBox="0 0 256 256">
+      <path
+        d="M80,64a8,8,0,0,1,8-8H216a8,8,0,0,1,0,16H88A8,8,0,0,1,80,64Zm136,56H88a8,8,0,0,0,0,16H216a8,8,0,0,0,0-16Zm0,64H88a8,8,0,0,0,0,16H216a8,8,0,0,0,0-16ZM44,52A12,12,0,1,0,56,64,12,12,0,0,0,44,52Zm0,64a12,12,0,1,0,12,12A12,12,0,0,0,44,116Zm0,64a12,12,0,1,0,12,12A12,12,0,0,0,44,180Z" />
+    </symbol>
+    <symbol id="i-list" viewBox="0 0 256 256">
+      <path
+        d="M224,128a8,8,0,0,1-8,8H40a8,8,0,0,1,0-16H216A8,8,0,0,1,224,128ZM40,72H216a8,8,0,0,0,0-16H40a8,8,0,0,0,0,16ZM216,184H40a8,8,0,0,0,0,16H216a8,8,0,0,0,0-16Z" />
+    </symbol>
   </svg>
 
   <header class="site-header">
@@ -66,15 +112,25 @@
         <button class="theme-switch" type="button" role="switch" aria-checked="false" aria-label="Ubah mode warna">
           <span class="theme-track" aria-hidden="true">
             <span class="theme-thumb">
-              <svg class="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4L6 18M18 6l1.4-1.4"/></svg>
-              <svg class="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z"/></svg>
+              <svg class="i-sun" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="4" />
+                <path
+                  d="M12 2.5v2M12 19.5v2M4.6 4.6l1.4 1.4M18 18l1.4 1.4M2.5 12h2M19.5 12h2M4.6 19.4L6 18M18 6l1.4-1.4" />
+              </svg>
+              <svg class="i-moon" viewBox="0 0 24 24">
+                <path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5z" />
+              </svg>
             </span>
           </span>
         </button>
         <a class="nav-login" href="/masuk">Masuk</a>
         <a class="btn btn-primary btn-sm" href="/daftar">Mulai gratis</a>
         <button class="menu-btn" type="button" aria-expanded="false" aria-controls="mobile-menu" aria-label="Buka menu">
-          <svg class="icon" aria-hidden="true"><use href="#i-list"/></svg>
+          <span class="hamburger" aria-hidden="true">
+            <span></span>
+            <span></span>
+            <span></span>
+          </span>
         </button>
       </div>
     </div>
@@ -98,15 +154,21 @@
         <div class="hero-copy">
           <h1 id="hero-title">
             <span class="line"><span>Uangmu jelas,</span></span>
-            <span class="line"><span>bulananmu <span class="u">aman.<svg viewBox="0 0 132 12" preserveAspectRatio="none" aria-hidden="true"><path pathLength="1" d="M3 8C40 2 90 2 129 6"/></svg></span></span></span>
+            <span class="line"><span>bulananmu <span class="u">aman.<svg viewBox="0 0 132 12" preserveAspectRatio="none"
+                    aria-hidden="true">
+                    <path pathLength="1" d="M3 8C40 2 90 2 129 6" />
+                  </svg></span></span></span>
           </h1>
-          <p class="hero-sub">Finara membantu pelajar, anak kos, dan pelaku UMKM mencatat uang masuk dan keluar, menjaga anggaran, lalu menjelaskan ke mana uangmu pergi dengan bahasa yang mudah dipahami.</p>
+          <p class="hero-sub">Finara membantu pelajar, anak kos, dan pelaku UMKM mencatat uang masuk dan keluar, menjaga
+            anggaran, lalu menjelaskan ke mana uangmu pergi dengan bahasa yang mudah dipahami.</p>
           <div class="hero-actions">
             <a class="btn btn-primary" href="/daftar">Buat akun Finara</a>
             <a class="btn btn-ghost" href="#fitur">Lihat fitur</a>
           </div>
           <p class="hero-note">
-            <svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>
+            <svg class="icon" aria-hidden="true">
+              <use href="#i-check" />
+            </svg>
             <span>Mencatat transaksi cukup 3 langkah. Tanpa menghubungkan rekening bank.</span>
           </p>
         </div>
@@ -115,16 +177,26 @@
           <div class="demo-stage">
             <article class="demo-card" aria-labelledby="demo-title">
               <div class="demo-head">
-                <p class="demo-kicker" id="demo-title"><span class="demo-dot" aria-hidden="true"></span>Ringkasan bulan ini</p>
+                <p class="demo-kicker" id="demo-title"><span class="demo-dot" aria-hidden="true"></span>Ringkasan bulan
+                  ini</p>
                 <div class="tabs" role="tablist" aria-label="Pilih profil contoh">
-                  <button class="tab" type="button" role="tab" id="tab-pelajar" aria-controls="demo-panel" aria-selected="true" tabindex="0" data-profile="pelajar">
-                    <svg class="icon" aria-hidden="true"><use href="#i-graduation"/></svg>Pelajar
+                  <button class="tab" type="button" role="tab" id="tab-pelajar" aria-controls="demo-panel"
+                    aria-selected="true" tabindex="0" data-profile="pelajar">
+                    <svg class="icon" aria-hidden="true">
+                      <use href="#i-graduation" />
+                    </svg>Pelajar
                   </button>
-                  <button class="tab" type="button" role="tab" id="tab-kos" aria-controls="demo-panel" aria-selected="false" tabindex="-1" data-profile="kos">
-                    <svg class="icon" aria-hidden="true"><use href="#i-house"/></svg>Anak kos
+                  <button class="tab" type="button" role="tab" id="tab-kos" aria-controls="demo-panel"
+                    aria-selected="false" tabindex="-1" data-profile="kos">
+                    <svg class="icon" aria-hidden="true">
+                      <use href="#i-house" />
+                    </svg>Anak kos
                   </button>
-                  <button class="tab" type="button" role="tab" id="tab-umkm" aria-controls="demo-panel" aria-selected="false" tabindex="-1" data-profile="umkm">
-                    <svg class="icon" aria-hidden="true"><use href="#i-storefront"/></svg>UMKM
+                  <button class="tab" type="button" role="tab" id="tab-umkm" aria-controls="demo-panel"
+                    aria-selected="false" tabindex="-1" data-profile="umkm">
+                    <svg class="icon" aria-hidden="true">
+                      <use href="#i-storefront" />
+                    </svg>UMKM
                   </button>
                 </div>
               </div>
@@ -161,9 +233,11 @@
                       <div class="bar-col"><span class="bar" style="--h:.31"></span><span class="day">K</span></div>
                       <div class="bar-col"><span class="bar" style="--h:.65"></span><span class="day">J</span></div>
                       <div class="bar-col"><span class="bar" style="--h:.54"></span><span class="day">S</span></div>
-                      <div class="bar-col"><span class="bar is-last" style="--h:1"></span><span class="day">M</span></div>
+                      <div class="bar-col"><span class="bar is-last" style="--h:1"></span><span class="day">M</span>
+                      </div>
                     </div>
-                    <p class="sr-only" id="chart-summary">Pengeluaran 7 hari terakhir: Senin Rp25.000, Selasa Rp18.000, Rabu Rp42.000, Kamis Rp16.000, Jumat Rp34.000, Sabtu Rp28.000, Minggu Rp52.000.</p>
+                    <p class="sr-only" id="chart-summary">Pengeluaran 7 hari terakhir: Senin Rp25.000, Selasa Rp18.000,
+                      Rabu Rp42.000, Kamis Rp16.000, Jumat Rp34.000, Sabtu Rp28.000, Minggu Rp52.000.</p>
                   </div>
 
                   <div class="demo-lower">
@@ -176,7 +250,9 @@
                       <p class="budget-note" id="budget-note">Rp120.000 dari Rp150.000</p>
                     </div>
                     <div class="demo-insight">
-                      <svg class="icon" aria-hidden="true"><use href="#i-bulb"/></svg>
+                      <svg class="icon" aria-hidden="true">
+                        <use href="#i-bulb" />
+                      </svg>
                       <p id="insight-text">Jajan bulan ini Rp120.000. Batas aman harianmu Rp19.000.</p>
                     </div>
                   </div>
@@ -198,7 +274,9 @@
 
         <div class="bento">
           <article data-reveal="up" class="card card-primary span-3">
-            <svg class="card-icon" aria-hidden="true"><use href="#i-list-bullets"/></svg>
+            <svg class="card-icon" aria-hidden="true">
+              <use href="#i-list-bullets" />
+            </svg>
             <h3>Catat dalam 3 langkah</h3>
             <p>Pilih jenis, isi nominal dan kategori, lalu simpan. Riwayat bisa dicari dan difilter.</p>
             <div class="tx-demo" aria-hidden="true">
@@ -221,7 +299,9 @@
           </article>
 
           <article data-reveal="up" class="card span-3">
-            <svg class="card-icon" aria-hidden="true"><use href="#i-chart"/></svg>
+            <svg class="card-icon" aria-hidden="true">
+              <use href="#i-chart" />
+            </svg>
             <h3>Dashboard yang mudah dibaca</h3>
             <p>Total pemasukan, pengeluaran, sisa saldo, grafik per kategori dan tren bulanan.</p>
             <div class="cat-summary" aria-hidden="true">
@@ -253,7 +333,9 @@
           </article>
 
           <article data-reveal="up" class="card span-2">
-            <svg class="card-icon" aria-hidden="true"><use href="#i-wallet"/></svg>
+            <svg class="card-icon" aria-hidden="true">
+              <use href="#i-wallet" />
+            </svg>
             <h3>Anggaran per kategori</h3>
             <p>Tetapkan batas bulanan dan pantau sisanya.</p>
             <div class="mini-budgets" aria-hidden="true">
@@ -273,7 +355,9 @@
           </article>
 
           <article data-reveal="up" class="card span-2">
-            <svg class="card-icon" aria-hidden="true"><use href="#i-target"/></svg>
+            <svg class="card-icon" aria-hidden="true">
+              <use href="#i-target" />
+            </svg>
             <h3>Target tabungan</h3>
             <p>Catat setoran dan lihat progres.</p>
             <div class="saving" aria-hidden="true">
@@ -285,7 +369,9 @@
           </article>
 
           <article data-reveal="up" class="card card-accent span-2">
-            <svg class="card-icon" aria-hidden="true"><use href="#i-bell"/></svg>
+            <svg class="card-icon" aria-hidden="true">
+              <use href="#i-bell" />
+            </svg>
             <h3>Peringatan dan pengingat</h3>
             <p>Diberi tahu saat pengeluaran mencapai 80% anggaran dan saat tagihan rutin hampir jatuh tempo.</p>
             <div class="alert-list" aria-hidden="true">
@@ -296,9 +382,12 @@
 
           <article data-reveal="up" class="card card-insight span-4">
             <div class="insight-copy">
-              <svg class="card-icon" aria-hidden="true"><use href="#i-bulb"/></svg>
+              <svg class="card-icon" aria-hidden="true">
+                <use href="#i-bulb" />
+              </svg>
               <h3>Insight otomatis</h3>
-              <p>Bandingkan dengan bulan lalu, lihat kategori terbesar, ketahui batas aman harian. Semua dihitung dari data yang dicatat.</p>
+              <p>Bandingkan dengan bulan lalu, lihat kategori terbesar, ketahui batas aman harian. Semua dihitung dari
+                data yang dicatat.</p>
             </div>
             <div class="insight-media" aria-hidden="true">
               <div class="compare">
@@ -321,12 +410,18 @@
           </article>
 
           <article data-reveal="up" class="card card-reports span-2">
-            <svg class="card-icon" aria-hidden="true"><use href="#i-download"/></svg>
+            <svg class="card-icon" aria-hidden="true">
+              <use href="#i-download" />
+            </svg>
             <h3>Laporan yang bisa diunduh</h3>
             <p>Ringkasan bulanan dalam PDF atau CSV.</p>
             <div class="file-list" aria-hidden="true">
-              <div class="file"><span class="file-tag">PDF</span><span>Laporan Agustus</span><svg class="icon"><use href="#i-download"/></svg></div>
-              <div class="file"><span class="file-tag">CSV</span><span>Transaksi Agustus</span><svg class="icon"><use href="#i-download"/></svg></div>
+              <div class="file"><span class="file-tag">PDF</span><span>Laporan Agustus</span><svg class="icon">
+                  <use href="#i-download" />
+                </svg></div>
+              <div class="file"><span class="file-tag">CSV</span><span>Transaksi Agustus</span><svg class="icon">
+                  <use href="#i-download" />
+                </svg></div>
             </div>
           </article>
         </div>
@@ -342,7 +437,9 @@
 
         <div class="profile-grid">
           <article data-reveal="up" class="profile-card">
-            <svg class="profile-icon" aria-hidden="true"><use href="#i-graduation"/></svg>
+            <svg class="profile-icon" aria-hidden="true">
+              <use href="#i-graduation" />
+            </svg>
             <h3>Pelajar dan remaja</h3>
             <p>Catat uang saku dan jajan; menabung untuk barang impian.</p>
             <div class="profile-visual">
@@ -360,7 +457,9 @@
           </article>
 
           <article data-reveal="up" class="profile-card">
-            <svg class="profile-icon" aria-hidden="true"><use href="#i-house"/></svg>
+            <svg class="profile-icon" aria-hidden="true">
+              <use href="#i-house" />
+            </svg>
             <h3>Mahasiswa dan anak kos</h3>
             <p>Bagi uang bulanan sampai akhir bulan; pengingat kos, listrik, langganan.</p>
             <div class="profile-visual">
@@ -378,7 +477,9 @@
           </article>
 
           <article data-reveal="up" class="profile-card">
-            <svg class="profile-icon" aria-hidden="true"><use href="#i-storefront"/></svg>
+            <svg class="profile-icon" aria-hidden="true">
+              <use href="#i-storefront" />
+            </svg>
             <h3>Pelaku UMKM</h3>
             <p>Pisahkan pemasukan dan biaya usaha; lihat laba sederhana tiap bulan.</p>
             <div class="profile-visual">
@@ -438,22 +539,34 @@
       <div class="wrap">
         <div class="security" data-reveal="in">
           <div class="security-copy">
-            <svg class="security-icon" aria-hidden="true"><use href="#i-shield"/></svg>
+            <svg class="security-icon" aria-hidden="true">
+              <use href="#i-shield" />
+            </svg>
             <h2 id="security-title">Datamu hanya bisa dilihat olehmu.</h2>
-            <p>Kata sandi disimpan terenkripsi, akses memakai HTTPS, dan data keuangan tiap akun terpisah dari akun lain.</p>
+            <p>Kata sandi disimpan terenkripsi, akses memakai HTTPS, dan data keuangan tiap akun terpisah dari akun
+              lain.</p>
           </div>
           <ul class="assurances">
             <li data-reveal="up" class="assurance">
-              <svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>
-              <span><strong>Kata sandi terenkripsi</strong><span>Kata sandi disimpan dalam bentuk terenkripsi, bukan teks biasa.</span></span>
+              <svg class="icon" aria-hidden="true">
+                <use href="#i-check" />
+              </svg>
+              <span><strong>Kata sandi terenkripsi</strong><span>Kata sandi disimpan dalam bentuk terenkripsi, bukan
+                  teks biasa.</span></span>
             </li>
             <li data-reveal="up" class="assurance">
-              <svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>
-              <span><strong>Akses lewat HTTPS</strong><span>Data yang berpindah antara kamu dan Finara dilindungi.</span></span>
+              <svg class="icon" aria-hidden="true">
+                <use href="#i-check" />
+              </svg>
+              <span><strong>Akses lewat HTTPS</strong><span>Data yang berpindah antara kamu dan Finara
+                  dilindungi.</span></span>
             </li>
             <li data-reveal="up" class="assurance">
-              <svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>
-              <span><strong>Data tiap akun terpisah</strong><span>Catatan keuanganmu tidak bercampur dengan akun lain.</span></span>
+              <svg class="icon" aria-hidden="true">
+                <use href="#i-check" />
+              </svg>
+              <span><strong>Data tiap akun terpisah</strong><span>Catatan keuanganmu tidak bercampur dengan akun
+                  lain.</span></span>
             </li>
           </ul>
         </div>
@@ -464,31 +577,45 @@
       <div class="wrap">
         <div class="section-head" data-reveal="up">
           <h2 id="tentang-title">Tentang Finara dan Kelompok Nirmala</h2>
-          <p>Finara merupakan singkatan dari Financial Insight, Notes, Analysis, and Reporting Assistant yang dirancang sebagai alat bantu edukasi dan perencanaan keuangan.</p>
+          <p>Finara merupakan singkatan dari Financial Insight, Notes, Analysis, and Reporting Assistant yang dirancang
+            sebagai alat bantu edukasi dan perencanaan keuangan.</p>
         </div>
 
         <div class="bento about-bento">
           <article data-reveal="up" class="card span-3">
-            <svg class="card-icon" aria-hidden="true"><use href="#i-bulb"/></svg>
+            <svg class="card-icon" aria-hidden="true">
+              <use href="#i-bulb" />
+            </svg>
             <h3>Cerita dan tujuan Finara</h3>
-            <p>Pelajar, anak kos, dan pelaku UMKM sering mencatat transaksi secara terpisah atau mengandalkan ingatan sehingga anggaran bulanan mudah terlewat.</p>
-            <p>Finara menggabungkan pencatatan transaksi, batas anggaran per kategori, target tabungan, pengingat tagihan, dan evaluasi otomatis dalam satu aplikasi web.</p>
+            <p>Pelajar, anak kos, dan pelaku UMKM sering mencatat transaksi secara terpisah atau mengandalkan ingatan
+              sehingga anggaran bulanan mudah terlewat.</p>
+            <p>Finara menggabungkan pencatatan transaksi, batas anggaran per kategori, target tabungan, pengingat
+              tagihan, dan evaluasi otomatis dalam satu aplikasi web.</p>
           </article>
 
           <article data-reveal="up" class="card span-3">
-            <svg class="card-icon" aria-hidden="true"><use href="#i-shield"/></svg>
+            <svg class="card-icon" aria-hidden="true">
+              <use href="#i-shield" />
+            </svg>
             <h3>Prinsip kerja sistem</h3>
             <ul class="about-principles">
               <li>
-                <svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>
-                <span>Pencatatan dilakukan manual oleh pengguna tanpa menghubungkan rekening bank atau dompet digital.</span>
+                <svg class="icon" aria-hidden="true">
+                  <use href="#i-check" />
+                </svg>
+                <span>Pencatatan dilakukan manual oleh pengguna tanpa menghubungkan rekening bank atau dompet
+                  digital.</span>
               </li>
               <li>
-                <svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>
+                <svg class="icon" aria-hidden="true">
+                  <use href="#i-check" />
+                </svg>
                 <span>Insight dihitung menggunakan aturan yang jelas dari data transaksi tanpa kecerdasan buatan.</span>
               </li>
               <li>
-                <svg class="icon" aria-hidden="true"><use href="#i-check"/></svg>
+                <svg class="icon" aria-hidden="true">
+                  <use href="#i-check" />
+                </svg>
                 <span>Pencatatan UMKM berfokus pada pemasukan, biaya usaha, dan laba sederhana.</span>
               </li>
             </ul>
@@ -498,7 +625,8 @@
             <div class="team-head">
               <div>
                 <h3>Tim pengembang Kelompok Nirmala</h3>
-                <p>Proyek mata kuliah Rekayasa Perangkat Lunak kelas IF26A, Program Studi Informatika, Fakultas Ilmu Komputer, Universitas Amikom Purwokerto.</p>
+                <p>Proyek mata kuliah Rekayasa Perangkat Lunak kelas IF26A, Program Studi Informatika, Fakultas Ilmu
+                  Komputer, Universitas Amikom Purwokerto.</p>
               </div>
               <span class="team-badge">Informatika IF26A</span>
             </div>
@@ -524,6 +652,11 @@
                 <p class="member-name">Talitha Nur Isnaini</p>
                 <span class="member-nim">26SA11A137</span>
               </div>
+              <div class="team-member">
+                <span class="member-role">Anggota</span>
+                <p class="member-name">Al Farel Rafa Prayoga</p>
+                <span class="member-nim">26SA11A161</span>
+              </div>
             </div>
           </article>
         </div>
@@ -543,7 +676,8 @@
               Apakah Finara terhubung ke rekening bank atau dompet digital?
               <span class="faq-plus" aria-hidden="true"></span>
             </summary>
-            <p>Tidak. Semua pencatatan dilakukan manual oleh pengguna, jadi tidak ada akses ke rekening atau dompet digital.</p>
+            <p>Tidak. Semua pencatatan dilakukan manual oleh pengguna, jadi tidak ada akses ke rekening atau dompet
+              digital.</p>
           </details>
 
           <details data-reveal="up" name="faq">
@@ -559,7 +693,8 @@
               Apakah cocok untuk pembukuan usaha lengkap?
               <span class="faq-plus" aria-hidden="true"></span>
             </summary>
-            <p>Finara dibatasi pada pemasukan, biaya usaha, dan laba sederhana. Fitur ini bukan pembukuan lengkap atau pengelolaan stok.</p>
+            <p>Finara dibatasi pada pemasukan, biaya usaha, dan laba sederhana. Fitur ini bukan pembukuan lengkap atau
+              pengelolaan stok.</p>
           </details>
 
           <details data-reveal="up" name="faq">
@@ -567,7 +702,8 @@
               Apakah ini pengganti penasihat keuangan?
               <span class="faq-plus" aria-hidden="true"></span>
             </summary>
-            <p>Bukan. Finara adalah alat bantu edukasi dan perencanaan keuangan, bukan pengganti saran dari profesional.</p>
+            <p>Bukan. Finara adalah alat bantu edukasi dan perencanaan keuangan, bukan pengganti saran dari profesional.
+            </p>
           </details>
         </div>
       </div>
@@ -579,18 +715,27 @@
           <h2 id="kontak-title">Ada pertanyaan atau masukan?</h2>
           <p>Tulis pesanmu di sini. Formulir akan membuka aplikasi email dengan pesan yang sudah terisi.</p>
           <ul class="contact-list">
-            <li><span>Email</span><a href="mailto:halo@finara.id">halo@finara.id</a></li>
-            <li><span>Tim</span><span>Kelompok Nirmala, IF26A</span></li>
-            <li><span>Kampus</span><span>Universitas Amikom Purwokerto</span></li>
+            <li><span>Email</span><a href="mailto:support.finara@gmail.com">support.finara@gmail.com</a></li>
           </ul>
         </div>
-        <form class="contact-form" data-reveal="up" data-email="halo@finara.id" novalidate>
+        <form class="contact-form" data-reveal="up" data-email="support.finara@gmail.com" novalidate>
           <div class="form-row">
-            <div class="field"><label for="nama">Nama</label><input id="nama" name="nama" type="text" autocomplete="name" required aria-describedby="nama-err" placeholder="Nama lengkap"><span class="field-err" id="nama-err"></span></div>
-            <div class="field"><label for="email">Email</label><input id="email" name="email" type="email" autocomplete="email" required aria-describedby="email-err" placeholder="nama@email.com"><span class="field-err" id="email-err"></span></div>
+            <div class="field"><label for="nama">Nama</label><input id="nama" name="nama" type="text"
+                autocomplete="name" required aria-describedby="nama-err" placeholder="Nama lengkap"><span
+                class="field-err" id="nama-err"></span></div>
+            <div class="field"><label for="email">Email</label><input id="email" name="email" type="email"
+                autocomplete="email" required aria-describedby="email-err" placeholder="nama@email.com"><span
+                class="field-err" id="email-err"></span></div>
           </div>
-          <div class="field"><label for="topik">Topik</label><select id="topik" name="topik" required aria-describedby="topik-err"><option>Pertanyaan</option><option>Masukan</option><option>Laporan masalah</option></select><span class="field-err" id="topik-err"></span></div>
-          <div class="field"><label for="pesan">Pesan</label><textarea id="pesan" name="pesan" required aria-describedby="pesan-err" placeholder="Tulis pesanmu"></textarea><span class="field-err" id="pesan-err"></span></div>
+          <div class="field"><label for="topik">Topik</label><select id="topik" name="topik" required
+              aria-describedby="topik-err">
+              <option>Pertanyaan</option>
+              <option>Masukan</option>
+              <option>Laporan masalah</option>
+            </select><span class="field-err" id="topik-err"></span></div>
+          <div class="field"><label for="pesan">Pesan</label><textarea id="pesan" name="pesan" required
+              aria-describedby="pesan-err" placeholder="Tulis pesanmu"></textarea><span class="field-err"
+              id="pesan-err"></span></div>
           <button class="btn btn-primary" type="submit">Kirim pesan</button>
           <p class="form-status" role="status" aria-live="polite"></p>
         </form>
@@ -620,7 +765,8 @@
           <a class="footer-brand" href="#top" aria-label="Finara, kembali ke atas">
             <span class="wordmark">finara<span class="wm-dot" aria-hidden="true">.</span></span>
           </a>
-          <p class="footer-desc">Catatan keuangan harian untuk pelajar, anak kos, dan pelaku UMKM. Uangmu jelas, bulananmu aman.</p>
+          <p class="footer-desc">Catatan keuangan harian untuk pelajar, anak kos, dan pelaku UMKM. Uangmu jelas,
+            bulananmu aman.</p>
           <p class="footer-badge">
             <span class="badge-dot" aria-hidden="true"></span>
             <span>Pencatatan manual tanpa akses rekening</span>
@@ -647,24 +793,13 @@
             <li><a href="mailto:halo@finara.id">halo@finara.id</a></li>
           </ul>
         </div>
-
-        <div class="footer-col">
-          <h3>Proyek</h3>
-          <p class="footer-meta">Kelompok Nirmala</p>
-          <p class="footer-meta">Program Studi Informatika</p>
-          <p class="footer-meta">Universitas Amikom Purwokerto</p>
-        </div>
       </div>
 
       <div class="footer-bottom">
         <div class="footer-legal">
           <p>© 2026 Finara. Seluruh hak cipta dilindungi.</p>
-          <p>Finara merupakan alat bantu edukasi dan perencanaan keuangan.</p>
+          <p>Dikembangkan oleh Kelompok Nirmala, Informatika Universitas Amikom Purwokerto.</p>
         </div>
-        <a class="back-top" href="#top">
-          <span>Kembali ke atas</span>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
-        </a>
       </div>
     </div>
   </footer>

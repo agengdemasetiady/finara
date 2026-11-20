@@ -227,7 +227,7 @@ function tween(el, to, dur = 850) {
   const sync = () => {
     const dark = root.dataset.theme === 'dark';
     btn.setAttribute('aria-checked', String(dark));
-    if (meta) meta.content = getComputedStyle(root).getPropertyValue('--bg').trim();
+    if (meta) meta.content = dark ? '#0D1713' : '#F6F7F2';
   };
 
   const apply = (theme) => {
@@ -235,30 +235,17 @@ function tween(el, to, dur = 850) {
     sync();
   };
 
-  const set = (theme, x, y) => {
+  const set = (theme) => {
     try { localStorage.setItem(KEY, theme); } catch (_) {}
     if (!motionOK()) return apply(theme);
-    if (!document.startViewTransition) {
-      root.classList.add('theme-fade');
-      apply(theme);
-      setTimeout(() => root.classList.remove('theme-fade'), 450);
-      return;
-    }
-    const r = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
-    const vt = document.startViewTransition(() => apply(theme));
-    vt.ready.then(() => root.animate(
-      { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${r}px at ${x}px ${y}px)`] },
-      { duration: 750, easing: 'cubic-bezier(.22, 1, .36, 1)', pseudoElement: '::view-transition-new(root)' }
-    )).catch(() => {});
+    root.classList.add('theme-fade');
+    apply(theme);
+    clearTimeout(root._themeT);
+    root._themeT = setTimeout(() => root.classList.remove('theme-fade'), 260);
   };
 
   btn.addEventListener('click', () => {
-    const b = btn.getBoundingClientRect();
-    set(
-      root.dataset.theme === 'dark' ? 'light' : 'dark',
-      b.left + b.width / 2,
-      b.top + b.height / 2
-    );
+    set(root.dataset.theme === 'dark' ? 'light' : 'dark');
   });
 
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
@@ -385,7 +372,6 @@ function tween(el, to, dur = 850) {
     if (ticking) return;
     ticking = true;
     requestAnimationFrame(() => {
-      const max = document.documentElement.scrollHeight - innerHeight;
       if (header) header.classList.toggle('is-scrolled', scrollY > 8);
       ticking = false;
     });
@@ -444,7 +430,6 @@ function tween(el, to, dur = 850) {
   const EASE_CLOSE = 'cubic-bezier(.65, 0, .35, 1)';
 
   list.classList.add('is-enhanced');
-  // Grup name="faq" menutup item lain secara instan; eksklusivitas kini diatur manual agar penutupan ikut beranimasi.
   items.forEach((d) => {
     d.removeAttribute('name');
     d.classList.toggle('is-open', d.open);
@@ -470,11 +455,10 @@ function tween(el, to, dur = 850) {
 
   function toggle(d, open) {
     const body = d.querySelector('p');
-    const startH = d.getBoundingClientRect().height; // aman saat animasi sedang berjalan (dibatalkan di bawah)
+    const startH = d.getBoundingClientRect().height;
     stop(d);
     d.classList.toggle('is-open', open);
 
-    // Tanpa animasi: ganti state langsung
     if (!motionOK() || !d.animate) {
       d.open = open;
       d.classList.remove('is-closing');
@@ -501,7 +485,6 @@ function tween(el, to, dur = 850) {
       d._anims = [a1, a2];
       a1.onfinish = () => {
         cleanup(d);
-        // Di ponsel, pastikan jawaban yang baru terbuka tidak terpotong di bawah layar
         const r = d.getBoundingClientRect();
         if (r.bottom > innerHeight - 12) {
           scrollBy({ top: r.bottom - innerHeight + 24, behavior: 'smooth' });
@@ -547,14 +530,12 @@ function tween(el, to, dur = 850) {
   });
 })();
 
-
 /* ===== Polesan: scroll mulus antar-bagian, header cerdas, ripple sentuh, magnet, geser demo, tombol ke atas ===== */
 (() => {
   const root = document.documentElement;
   const fine = matchMedia('(hover: hover) and (pointer: fine)').matches;
   const buzz = (ms = 8) => { if (motionOK() && navigator.vibrate) { try { navigator.vibrate(ms); } catch (_) {} } };
 
-  /* --- Scroll anchor dengan easing + sorot judul tujuan --- */
   let scrollToken = 0;
   const scrollToY = (y) => new Promise((resolve) => {
     const from = scrollY;
@@ -601,7 +582,6 @@ function tween(el, to, dur = 850) {
     });
   });
 
-  /* --- Ripple sentuh/klik --- */
   const rippleSel = '.btn, .menu-btn, .tab, .mobile-menu a, .to-top';
   document.addEventListener('pointerdown', (e) => {
     if (e.button > 0) return;
@@ -628,7 +608,6 @@ function tween(el, to, dur = 850) {
     if (e.pointerType === 'touch') buzz(6);
   }, { passive: true });
 
-  /* --- Tombol magnetis (hanya mouse) --- */
   if (fine && motionOK()) {
     document.querySelectorAll('.btn').forEach((b) => {
       b.addEventListener('pointermove', (e) => {
@@ -643,7 +622,6 @@ function tween(el, to, dur = 850) {
     });
   }
 
-  /* --- Geser kiri/kanan di demo untuk ganti profil (sentuh) --- */
   const panel = document.getElementById('demo-panel');
   const tabs = Array.from(document.querySelectorAll('[role="tab"]'));
   if (panel && tabs.length) {
@@ -666,7 +644,6 @@ function tween(el, to, dur = 850) {
 
   document.querySelector('.theme-switch')?.addEventListener('click', () => buzz(10));
 
-  /* --- Tombol kembali ke atas dengan cincin progres --- */
   const top = document.createElement('button');
   top.type = 'button';
   top.className = 'to-top';
@@ -675,7 +652,6 @@ function tween(el, to, dur = 850) {
   top.addEventListener('click', () => scrollToY(0));
   document.body.appendChild(top);
 
-  /* --- Header cerdas (ponsel), parallax demo, progres --- */
   const header = document.querySelector('.site-header');
   const menuBtn = document.querySelector('.menu-btn');
   const stage = document.querySelector('.demo-stage');
@@ -711,4 +687,117 @@ function tween(el, to, dur = 850) {
     requestAnimationFrame(frame);
   }, { passive: true });
   frame();
+})();
+
+// Scroll track & thumb (custom scrollbar)
+(() => {
+if (window.innerWidth <= 900 || window.matchMedia('(pointer: coarse)').matches) return;
+
+  const track = document.createElement('div');
+  track.id = 'finara-scroll-track';
+  track.setAttribute('aria-hidden', 'true');
+
+  const thumb = document.createElement('div');
+  thumb.id = 'finara-scroll-thumb';
+
+  track.appendChild(thumb);
+  document.body.appendChild(track);
+
+  let timer;
+  let rafId = 0;
+  let dragging = false;
+  let startY = 0;
+  let startScroll = 0;
+  let winHeight = 0;
+  let maxScroll = 0;
+  let maxTop = 0;
+
+  function measure() {
+    const docHeight = document.documentElement.scrollHeight;
+    winHeight = window.innerHeight;
+    maxScroll = docHeight - winHeight;
+
+    if (maxScroll <= 0) {
+      thumb.style.display = 'none';
+      return;
+    }
+
+    thumb.style.display = 'block';
+    const trackHeight = winHeight - 80;
+    const thumbHeight = Math.max((winHeight / docHeight) * trackHeight, 48);
+    maxTop = trackHeight - thumbHeight;
+    thumb.style.height = thumbHeight + 'px';
+    updatePosition();
+  }
+
+  function updatePosition() {
+    if (maxScroll <= 0) return;
+    const currentTop = (window.scrollY / maxScroll) * maxTop;
+    thumb.style.transform = `translate3d(0, ${currentTop}px, 0)`;
+  }
+
+  function reveal() {
+    if (maxScroll <= 0) return;
+    track.classList.add('is-active');
+    clearTimeout(timer);
+    if (!dragging) {
+      timer = setTimeout(() => {
+        track.classList.remove('is-active');
+      }, 1000);
+    }
+  }
+
+  window.addEventListener('scroll', () => {
+    if (!rafId) {
+      rafId = requestAnimationFrame(() => {
+        updatePosition();
+        rafId = 0;
+      });
+    }
+    reveal();
+  }, { passive: true });
+
+  window.addEventListener('mousemove', (e) => {
+    if (!dragging && winHeight && window.innerWidth - e.clientX <= 24) {
+      reveal();
+    }
+  }, { passive: true });
+
+  thumb.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    dragging = true;
+    startY = e.clientY;
+    startScroll = window.scrollY;
+    thumb.setPointerCapture(e.pointerId);
+    track.classList.add('is-dragging');
+    document.body.style.userSelect = 'none';
+    clearTimeout(timer);
+  });
+
+  thumb.addEventListener('pointermove', (e) => {
+    if (!dragging || maxTop <= 0) return;
+    const delta = e.clientY - startY;
+    window.scrollTo({
+      top: startScroll + (delta / maxTop) * maxScroll,
+      behavior: 'instant'
+    });
+  });
+
+  const endDrag = (e) => {
+    if (!dragging) return;
+    dragging = false;
+    thumb.releasePointerCapture(e.pointerId);
+    track.classList.remove('is-dragging');
+    document.body.style.userSelect = '';
+    reveal();
+  };
+
+  thumb.addEventListener('pointerup', endDrag);
+  thumb.addEventListener('pointercancel', endDrag);
+
+  new ResizeObserver(measure).observe(document.body);
+  window.addEventListener('resize', measure, { passive: true });
+
+  measure();
+  reveal();
 })();
