@@ -33,7 +33,8 @@ export async function tambahTransaksi(raw: unknown): Promise<ActionResult> {
   });
 
   if (rpcError) {
-    return { ok: false, message: rpcError.message || 'Gagal menyimpan transaksi.' };
+    console.error('Error RPC transaksi:', rpcError.message);
+    return { ok: false, message: 'Gagal menyimpan transaksi. Periksa kembali data kategori.' };
   }
 
   const warning =
