@@ -1,0 +1,167 @@
+@import "tailwindcss";
+
+:root {
+  --primary: #0B5C46;
+  --primary-hover: #084A38;
+  --primary-soft: #E4F0E9;
+  --accent: #F2B33D;
+  --accent-strong: #9A5B00;
+  --accent-soft: #FBEFD3;
+  --ink: #14231D;
+  --muted: #52625B;
+  --border: #DCE4DE;
+  --border-strong: #C9D8CF;
+  --bg: #F6F7F2;
+  --bg-glass: rgba(246, 247, 242, 0.88);
+  --surface: #FFFFFF;
+  --on-primary: #FFFFFF;
+  --on-accent: #14231D;
+  --focus: #0B5C46;
+  --bar-muted: #BFDCCE;
+  --danger: #B3261E;
+  --font-display: "Bricolage Grotesque", "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-body: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --ease: cubic-bezier(.22, 1, .36, 1);
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --primary: #309374;
+  --primary-hover: #3AA684;
+  --primary-soft: #163328;
+  --accent: #F2B33D;
+  --accent-strong: #F2B33D;
+  --accent-soft: #2E2717;
+  --ink: #EEF4EF;
+  --muted: #A6B5AD;
+  --border: #293A31;
+  --border-strong: #365345;
+  --bg: #0D1713;
+  --bg-glass: rgba(13, 23, 19, 0.88);
+  --surface: #15221C;
+  --on-primary: #071510;
+  --on-accent: #071510;
+  --focus: #F2B33D;
+  --bar-muted: #2D5A49;
+  --danger: #FF8A80;
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background-color: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.35s var(--ease), color 0.35s var(--ease);
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+.fn-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.03em;
+}
+
+.fn-num {
+  font-variant-numeric: tabular-nums;
+}
+
+.fn-card {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  transition: border-color 0.25s var(--ease), background-color 0.35s var(--ease);
+}
+
+.fn-card-hover:hover {
+  border-color: var(--border-strong);
+}
+
+.fn-input {
+  width: 100%;
+  min-height: 46px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border-strong);
+  background-color: var(--bg);
+  color: var(--ink);
+  font-size: 0.9375rem;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.fn-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  background-color: var(--surface);
+}
+
+.fn-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 20px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background-color 0.2s var(--ease), transform 0.2s var(--ease);
+}
+
+.fn-btn:active {
+  transform: scale(0.98);
+}
+
+.fn-btn-primary {
+  background-color: var(--primary);
+  color: var(--on-primary);
+}
+
+.fn-btn-primary:hover:not(:disabled) {
+  background-color: var(--primary-hover);
+}
+
+.fn-btn-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.fn-btn-ghost {
+  background-color: transparent;
+  color: var(--ink);
+  border: 1px solid var(--border-strong);
+}
+
+.fn-btn-ghost:hover {
+  background-color: var(--primary-soft);
+  border-color: var(--primary);
+}
+
+@keyframes fn-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fn-page-enter {
+  animation: fn-fade-in 0.22s var(--ease) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fn-page-enter {
+    animation: none;
+  }
+}
