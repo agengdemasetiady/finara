@@ -2,12 +2,11 @@
 
 import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowRight, WarningCircle } from '@phosphor-icons/react';
+import { useSearchParams } from 'next/navigation';
+import { ArrowRight, CheckCircle, WarningCircle } from '@phosphor-icons/react';
 import { masukAkun } from '@/lib/actions/auth';
 
 function MasukForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const urlError = searchParams.get('error');
 
@@ -20,41 +19,88 @@ function MasukForm() {
         ? 'Tautan verifikasi tidak valid atau kedaluwarsa.'
         : ''
   );
+  const [successMsg, setSuccessMsg] = useState('');
   const [loading, setLoading] = useState(false);
+
+  function scrollToTop() {
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (loading) return;
+
     setErrorMsg('');
+    setSuccessMsg('');
     setLoading(true);
-    const res = await masukAkun({ email, password });
-    setLoading(false);
 
-    if (!res.ok) {
-      setErrorMsg(res.message);
-      return;
+    try {
+      const res = await masukAkun({ email, password });
+
+      if (!res.ok) {
+        setLoading(false);
+        setErrorMsg(res.message);
+        scrollToTop();
+        return;
+      }
+
+      const tujuan = res.redirectTo || '/dashboard';
+      setSuccessMsg(
+        tujuan === '/admin'
+          ? 'Berhasil masuk! Mengalihkan ke panel admin...'
+          : 'Berhasil masuk! Mengalihkan ke dashboard...'
+      );
+      scrollToTop();
+
+      setTimeout(() => {
+        window.location.assign(tujuan);
+      }, 550);
+    } catch {
+      setLoading(false);
+      setErrorMsg('Terjadi gangguan jaringan. Silakan coba lagi.');
+      scrollToTop();
     }
-
-    router.push(res.redirectTo || '/dashboard');
-    router.refresh();
   }
 
   return (
     <div className="fn-surface p-6 sm:p-8 shadow-sm">
-      <h1 className="fn-display text-2xl sm:text-3xl font-semibold">Masuk ke Finara</h1>
-      <p className="text-sm mt-1.5" style={{ color: 'var(--muted)' }}>
-        Masukkan email dan kata sandi akunmu.
-      </p>
-
       {errorMsg && (
         <div
           role="alert"
-          className="mt-5 flex items-start gap-2.5 rounded-2xl p-3.5 text-sm"
-          style={{ backgroundColor: 'color-mix(in srgb, var(--danger) 12%, transparent)', color: 'var(--danger)' }}
+          className="fn-alert-anim mb-5 flex items-start gap-2.5 rounded-2xl p-3.5 text-sm font-medium"
+          style={{
+            backgroundColor: 'color-mix(in srgb, var(--danger) 12%, transparent)',
+            color: 'var(--danger)',
+            border: '1px solid color-mix(in srgb, var(--danger) 25%, transparent)',
+          }}
         >
           <WarningCircle size={18} weight="fill" className="shrink-0 mt-0.5" />
           <span>{errorMsg}</span>
         </div>
       )}
+
+      {successMsg && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fn-alert-anim mb-5 flex items-start gap-2.5 rounded-2xl p-3.5 text-sm font-semibold"
+          style={{
+            backgroundColor: 'var(--primary-soft)',
+            color: 'var(--primary)',
+            border: '1px solid color-mix(in srgb, var(--primary) 28%, transparent)',
+          }}
+        >
+          <CheckCircle size={18} weight="fill" className="shrink-0 mt-0.5" />
+          <span>{successMsg}</span>
+        </div>
+      )}
+
+      <h1 className="fn-display text-2xl sm:text-3xl font-semibold">Masuk ke Finara</h1>
+      <p className="text-sm mt-1.5" style={{ color: 'var(--muted)' }}>
+        Masukkan email dan kata sandi akunmu.
+      </p>
 
       <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4" noValidate>
         <div>
@@ -66,6 +112,7 @@ function MasukForm() {
             type="email"
             autoComplete="email"
             required
+            disabled={loading}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="nama@email.com"
@@ -87,6 +134,7 @@ function MasukForm() {
             type="password"
             autoComplete="current-password"
             required
+            disabled={loading}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
@@ -95,7 +143,7 @@ function MasukForm() {
         </div>
 
         <button type="submit" disabled={loading} className="fn-btn-primary w-full mt-2">
-          <span>{loading ? 'Memproses...' : 'Masuk'}</span>
+          <span>{successMsg ? 'Mengalihkan...' : loading ? 'Memproses...' : 'Masuk'}</span>
           {!loading && <ArrowRight size={18} weight="bold" />}
         </button>
       </form>

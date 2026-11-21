@@ -54,6 +54,7 @@ export async function daftarAkun(raw: unknown): Promise<ActionResult> {
     };
   }
 
+  revalidatePath('/', 'layout');
   return { ok: true, message: 'Pendaftaran berhasil.' };
 }
 
@@ -83,13 +84,15 @@ export async function masukAkun(raw: unknown): Promise<ActionResult & { redirect
     return { ok: false, message: 'Akunmu sedang dinonaktifkan oleh admin.' };
   }
 
+  revalidatePath('/', 'layout');
   const tujuan = akun?.peran === 'admin' ? '/admin' : '/dashboard';
-  return { ok: true, message: 'Berhasil masuk.', redirectTo: tujuan };
+  return { ok: true, message: 'Berhasil masuk! Mengalihkan...', redirectTo: tujuan };
 }
 
 export async function keluarAkun() {
   const supabase = await createClient();
   await supabase.auth.signOut();
+  revalidatePath('/', 'layout');
   redirect('/masuk');
 }
 
@@ -183,7 +186,6 @@ export async function ubahKataSandi(raw: unknown): Promise<ActionResult> {
     return { ok: false, message: 'Sesi tidak ditemukan.' };
   }
 
-  // Verifikasi kata sandi lama
   const { error: verifyError } = await supabase.auth.signInWithPassword({
     email: user.email,
     password: parsed.data.sandiLama,
@@ -219,7 +221,6 @@ export async function hapusAkun(raw: unknown): Promise<ActionResult> {
     return { ok: false, message: 'Sesi tidak ditemukan.' };
   }
 
-  // Konfirmasi kata sandi sebelum hapus permanen
   const { error: verifyError } = await supabase.auth.signInWithPassword({
     email: user.email,
     password: parsed.data.sandi,
