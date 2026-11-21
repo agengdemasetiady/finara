@@ -415,20 +415,7 @@ section[id] { scroll-margin-top: 96px; }
   transform: rotate(0) scale(1);
 }
 
-::view-transition-old(root),
-::view-transition-new(root) {
-  animation: none;
-  mix-blend-mode: normal;
-}
-
-::view-transition-old(root) { z-index: 1; }
-::view-transition-new(root) { z-index: 2; }
-
-html.theme-fade *,
-html.theme-fade *::before,
-html.theme-fade *::after {
-  transition: background-color .4s var(--ease), border-color .4s var(--ease), color .4s var(--ease), fill .4s var(--ease), stroke .4s var(--ease) !important;
-}
+/* Transisi tema memakai layer GPU ringan tanpa view-transition */
 
 .menu-btn {
   display: none;
@@ -2479,6 +2466,11 @@ html.js .is-in .contact-list li {
 #demo-panel { touch-action: pan-y; }
 
 @media (hover: none) {
+  .card::before, .profile-card::before { display: none !important; }
+  .site-header { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+  .card, .profile-card, .step, .demo-stage, .demo-card, .site-header, .site-footer, body {
+    transition-duration: .18s !important;
+  }
   .card:hover, .profile-card:hover { transform: none; box-shadow: none; border-color: var(--border); }
   .card:hover .card-icon, .profile-card:hover .profile-icon { transform: none; }
   .btn:hover { transform: none; }

@@ -322,17 +322,19 @@ export function initLanding(): () => void {
     }
   })();
 
-  /* ===== Tema terang/gelap ===== */
+  /* ===== Tema terang/gelap (ringan di mobile & desktop) ===== */
   (() => {
     const btn = document.querySelector<HTMLButtonElement>('.theme-switch');
     const meta = document.getElementById('meta-theme') as HTMLMetaElement | null;
     const KEY = 'finara-theme';
     if (!btn) return;
 
+    let activeOverlay: HTMLDivElement | null = null;
+
     const sync = () => {
       const dark = root.dataset.theme === 'dark';
       btn.setAttribute('aria-checked', String(dark));
-      if (meta) meta.content = getComputedStyle(root).getPropertyValue('--bg').trim();
+      if (meta) meta.content = dark ? '#0D1713' : '#F6F7F2';
     };
 
     const apply = (theme: string) => {
@@ -340,37 +342,54 @@ export function initLanding(): () => void {
       sync();
     };
 
-    const set = (theme: string, x: number, y: number) => {
+    const set = (theme: string) => {
       try {
         localStorage.setItem(KEY, theme);
       } catch (_) {}
-      if (!motionOK()) return apply(theme);
-      const docWithVt = document as Document & {
-        startViewTransition?: (cb: () => void) => { ready: Promise<void> };
-      };
-      if (!docWithVt.startViewTransition) {
-        root.classList.add('theme-fade');
+
+      const prevBg = root.dataset.theme === 'dark' ? '#0D1713' : '#F6F7F2';
+
+      if (!motionOK()) {
         apply(theme);
-        safeTimeout(() => root.classList.remove('theme-fade'), 450);
         return;
       }
-      const r = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y));
-      const vt = docWithVt.startViewTransition(() => apply(theme));
-      vt.ready
-        .then(() =>
-          root.animate(
-            { clipPath: [`circle(0px at ${x}px ${y}px)`, `circle(${r}px at ${x}px ${y}px)`] },
-            { duration: 750, easing: 'cubic-bezier(.22, 1, .36, 1)', pseudoElement: '::view-transition-new(root)' }
-          )
-        )
-        .catch(() => {});
+
+      if (activeOverlay) {
+        activeOverlay.remove();
+        activeOverlay = null;
+      }
+
+      const overlay = document.createElement('div');
+      overlay.setAttribute('aria-hidden', 'true');
+      overlay.style.cssText =
+        `position:fixed;inset:0;z-index:9999;pointer-events:none;background:${prevBg};opacity:0.88;will-change:opacity;`;
+      document.body.appendChild(overlay);
+      activeOverlay = overlay;
+
+      apply(theme);
+
+      if (overlay.animate) {
+        const anim = overlay.animate([{ opacity: 0.88 }, { opacity: 0 }], {
+          duration: 240,
+          easing: 'cubic-bezier(.22, 1, .36, 1)',
+          fill: 'forwards',
+        });
+        anim.onfinish = () => {
+          overlay.remove();
+          if (activeOverlay === overlay) activeOverlay = null;
+        };
+      } else {
+        safeTimeout(() => {
+          overlay.remove();
+          if (activeOverlay === overlay) activeOverlay = null;
+        }, 240);
+      }
     };
 
     btn.addEventListener(
       'click',
       () => {
-        const b = btn.getBoundingClientRect();
-        set(root.dataset.theme === 'dark' ? 'light' : 'dark', b.left + b.width / 2, b.top + b.height / 2);
+        set(root.dataset.theme === 'dark' ? 'light' : 'dark');
       },
       { signal }
     );
