@@ -1,9 +1,29 @@
-import React from 'react';
-import LandingEffects from '@/components/landing/LandingEffects';
+import type { CSSProperties } from 'react';
+import type { Metadata } from 'next';
+import './landing.css';
+import LandingEffects from '@/components/landing/LandingEffects'
+
+export const metadata: Metadata = {
+  title: 'Finara - Uangmu jelas, bulananmu aman.',
+  description:
+    'Finara membantu pelajar, anak kos, dan pelaku UMKM mencatat uang masuk dan keluar, menjaga anggaran, lalu menjelaskan ke mana uangmu pergi dengan bahasa yang mudah dipahami.',
+  openGraph: {
+    type: 'website',
+    title: 'Finara - Uangmu jelas, bulananmu aman.',
+    description:
+      'Catat uang masuk dan keluar, jaga anggaran, dan pahami ke mana uangmu pergi. Untuk pelajar, anak kos, dan pelaku UMKM.',
+    locale: 'id_ID',
+  },
+  icons: {
+    icon: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230B5C46'/%3E%3Ctext x='18' y='47' font-family='system-ui,sans-serif' font-weight='700' font-size='40' fill='%23fff'%3Ef%3C/text%3E%3Ccircle cx='45' cy='43' r='5' fill='%23F2B33D'/%3E%3C/svg%3E",
+  },
+};
 
 export default function LandingPage() {
   return (
     <>
+      <LandingEffects />
+
       <a className="skip-link" href="#main">
         Lewati ke konten utama
       </a>
@@ -58,7 +78,7 @@ export default function LandingPage() {
 
       <header className="site-header">
         <div className="wrap header-inner">
-          <a className="brand" href="#top" aria-label="Finara — kembali ke atas">
+          <a className="brand" href="#top" aria-label="Finara, kembali ke atas">
             <span className="wordmark">
               finara
               <span className="wm-dot" aria-hidden="true">
@@ -72,7 +92,7 @@ export default function LandingPage() {
             <a href="#untuk-siapa">Untuk siapa</a>
             <a href="#cara-kerja">Cara kerja</a>
             <a href="#tentang">Tentang</a>
-            <a href="#faq">Tanya jawab</a>
+            <a href="#kontak">Kontak</a>
           </nav>
 
           <div className="header-actions">
@@ -80,7 +100,7 @@ export default function LandingPage() {
               className="theme-switch"
               type="button"
               role="switch"
-              aria-checked="false"
+              aria-checked={false}
               aria-label="Ubah mode warna"
             >
               <span className="theme-track" aria-hidden="true">
@@ -99,18 +119,20 @@ export default function LandingPage() {
               Masuk
             </a>
             <a className="btn btn-primary btn-sm" href="/daftar">
-              Mulai gratis
+              Daftar
             </a>
             <button
               className="menu-btn"
               type="button"
-              aria-expanded="false"
+              aria-expanded={false}
               aria-controls="mobile-menu"
               aria-label="Buka menu"
             >
-              <svg className="icon" aria-hidden="true">
-                <use href="#i-list" />
-              </svg>
+              <span className="hamburger" aria-hidden="true">
+                <span></span>
+                <span></span>
+                <span></span>
+              </span>
             </button>
           </div>
         </div>
@@ -121,9 +143,9 @@ export default function LandingPage() {
             <a href="#untuk-siapa">Untuk siapa</a>
             <a href="#cara-kerja">Cara kerja</a>
             <a href="#tentang">Tentang</a>
-            <a href="#faq">Tanya jawab</a>
+            <a href="#kontak">Kontak</a>
             <a href="/masuk">Masuk</a>
-            <a href="/daftar">Mulai gratis</a>
+            <a href="/daftar">Daftar</a>
           </nav>
         </div>
       </header>
@@ -142,19 +164,18 @@ export default function LandingPage() {
                     <span className="u">
                       aman.
                       <svg viewBox="0 0 132 12" preserveAspectRatio="none" aria-hidden="true">
-                        <path pathLength="1" d="M3 8C40 2 90 2 129 6" />
+                        <path pathLength={1} d="M3 8C40 2 90 2 129 6" />
                       </svg>
                     </span>
                   </span>
                 </span>
               </h1>
               <p className="hero-sub">
-                Finara membantu pelajar, anak kos, dan pelaku UMKM mencatat uang masuk dan keluar, menjaga anggaran,
-                lalu menjelaskan ke mana uangmu pergi dengan bahasa yang mudah dipahami.
+                Catat uang masuk dan keluar, jaga anggaran, dan pahami ke mana uangmu pergi.
               </p>
               <div className="hero-actions">
                 <a className="btn btn-primary" href="/daftar">
-                  Buat akun Finara
+                  Daftar sekarang
                 </a>
                 <a className="btn btn-ghost" href="#fitur">
                   Lihat fitur
@@ -164,7 +185,7 @@ export default function LandingPage() {
                 <svg className="icon" aria-hidden="true">
                   <use href="#i-check" />
                 </svg>
-                <span>Mencatat transaksi cukup 3 langkah. Tanpa menghubungkan rekening bank.</span>
+                <span>Catat dalam 3 langkah. Tanpa menghubungkan rekening bank.</span>
               </p>
             </div>
 
@@ -173,7 +194,8 @@ export default function LandingPage() {
                 <article className="demo-card" aria-labelledby="demo-title">
                   <div className="demo-head">
                     <p className="demo-kicker" id="demo-title">
-                      <span className="demo-dot" aria-hidden="true"></span>Ringkasan bulan ini
+                      <span className="demo-dot" aria-hidden="true"></span>
+                      Ringkasan bulan ini
                     </p>
                     <div className="tabs" role="tablist" aria-label="Pilih profil contoh">
                       <button
@@ -182,7 +204,7 @@ export default function LandingPage() {
                         role="tab"
                         id="tab-pelajar"
                         aria-controls="demo-panel"
-                        aria-selected="true"
+                        aria-selected={true}
                         tabIndex={0}
                         data-profile="pelajar"
                       >
@@ -197,7 +219,7 @@ export default function LandingPage() {
                         role="tab"
                         id="tab-kos"
                         aria-controls="demo-panel"
-                        aria-selected="false"
+                        aria-selected={false}
                         tabIndex={-1}
                         data-profile="kos"
                       >
@@ -212,7 +234,7 @@ export default function LandingPage() {
                         role="tab"
                         id="tab-umkm"
                         aria-controls="demo-panel"
-                        aria-selected="false"
+                        aria-selected={false}
                         tabIndex={-1}
                         data-profile="umkm"
                       >
@@ -225,7 +247,13 @@ export default function LandingPage() {
                   </div>
 
                   <div className="demo-body" aria-live="polite">
-                    <div className="demo-panel" role="tabpanel" id="demo-panel" aria-labelledby="tab-pelajar" tabIndex={0}>
+                    <div
+                      className="demo-panel"
+                      role="tabpanel"
+                      id="demo-panel"
+                      aria-labelledby="tab-pelajar"
+                      tabIndex={0}
+                    >
                       <div className="demo-summary">
                         <div>
                           <p className="balance-label" id="balance-label">
@@ -259,31 +287,31 @@ export default function LandingPage() {
                         </div>
                         <div className="chart" aria-hidden="true">
                           <div className="bar-col">
-                            <span className="bar" style={{ '--h': '.48' } as React.CSSProperties}></span>
+                            <span className="bar" style={{ '--h': 0.48 } as CSSProperties}></span>
                             <span className="day">S</span>
                           </div>
                           <div className="bar-col">
-                            <span className="bar" style={{ '--h': '.35' } as React.CSSProperties}></span>
+                            <span className="bar" style={{ '--h': 0.35 } as CSSProperties}></span>
                             <span className="day">S</span>
                           </div>
                           <div className="bar-col">
-                            <span className="bar" style={{ '--h': '.81' } as React.CSSProperties}></span>
+                            <span className="bar" style={{ '--h': 0.81 } as CSSProperties}></span>
                             <span className="day">R</span>
                           </div>
                           <div className="bar-col">
-                            <span className="bar" style={{ '--h': '.31' } as React.CSSProperties}></span>
+                            <span className="bar" style={{ '--h': 0.31 } as CSSProperties}></span>
                             <span className="day">K</span>
                           </div>
                           <div className="bar-col">
-                            <span className="bar" style={{ '--h': '.65' } as React.CSSProperties}></span>
+                            <span className="bar" style={{ '--h': 0.65 } as CSSProperties}></span>
                             <span className="day">J</span>
                           </div>
                           <div className="bar-col">
-                            <span className="bar" style={{ '--h': '.54' } as React.CSSProperties}></span>
+                            <span className="bar" style={{ '--h': 0.54 } as CSSProperties}></span>
                             <span className="day">S</span>
                           </div>
                           <div className="bar-col">
-                            <span className="bar is-last" style={{ '--h': '1' } as React.CSSProperties}></span>
+                            <span className="bar is-last" style={{ '--h': 1 } as CSSProperties}></span>
                             <span className="day">M</span>
                           </div>
                         </div>
@@ -325,8 +353,7 @@ export default function LandingPage() {
         <section className="section" id="fitur" aria-labelledby="fitur-title">
           <div className="wrap">
             <div className="section-head" data-reveal="up">
-              <h2 id="fitur-title">Semua kebutuhan catatan keuangan di satu tempat</h2>
-              <p>Mulai dari mencatat sampai membaca laporan. Semuanya tersambung, tanpa pindah aplikasi.</p>
+              <h2 id="fitur-title">Semua yang kamu butuhkan, di satu tempat</h2>
             </div>
 
             <div className="bento">
@@ -335,7 +362,7 @@ export default function LandingPage() {
                   <use href="#i-list-bullets" />
                 </svg>
                 <h3>Catat dalam 3 langkah</h3>
-                <p>Pilih jenis, isi nominal dan kategori, lalu simpan. Riwayat bisa dicari dan difilter.</p>
+                <p>Pilih, isi, simpan.</p>
                 <div className="tx-demo" aria-hidden="true">
                   <div className="tx-toggle">
                     <span className="tx-pill is-on">Pengeluaran</span>
@@ -367,8 +394,8 @@ export default function LandingPage() {
                 <svg className="card-icon" aria-hidden="true">
                   <use href="#i-chart" />
                 </svg>
-                <h3>Dashboard yang mudah dibaca</h3>
-                <p>Total pemasukan, pengeluaran, sisa saldo, grafik per kategori dan tren bulanan.</p>
+                <h3>Dashboard</h3>
+                <p>Ringkasan dan grafik yang mudah dibaca.</p>
                 <div className="cat-summary" aria-hidden="true">
                   <span>
                     Masuk <strong>Rp500.000</strong>
@@ -413,8 +440,8 @@ export default function LandingPage() {
                 <svg className="card-icon" aria-hidden="true">
                   <use href="#i-wallet" />
                 </svg>
-                <h3>Anggaran per kategori</h3>
-                <p>Tetapkan batas bulanan dan pantau sisanya.</p>
+                <h3>Anggaran</h3>
+                <p>Batas bulanan per kategori.</p>
                 <div className="mini-budgets" aria-hidden="true">
                   <div className="mini-budget-row">
                     <div className="mini-budget-top">
@@ -451,7 +478,7 @@ export default function LandingPage() {
                   <use href="#i-target" />
                 </svg>
                 <h3>Target tabungan</h3>
-                <p>Catat setoran dan lihat progres.</p>
+                <p>Pantau progres tabunganmu.</p>
                 <div className="saving" aria-hidden="true">
                   <p className="saving-label">Sepeda baru</p>
                   <p className="saving-value">
@@ -472,7 +499,7 @@ export default function LandingPage() {
                   <use href="#i-bell" />
                 </svg>
                 <h3>Peringatan dan pengingat</h3>
-                <p>Diberi tahu saat pengeluaran mencapai 80% anggaran dan saat tagihan rutin hampir jatuh tempo.</p>
+                <p>Kabar saat anggaran 80% dan tagihan hampir jatuh tempo.</p>
                 <div className="alert-list" aria-hidden="true">
                   <div className="alert-item">
                     <span className="alert-mark">!</span>
@@ -491,10 +518,7 @@ export default function LandingPage() {
                     <use href="#i-bulb" />
                   </svg>
                   <h3>Insight otomatis</h3>
-                  <p>
-                    Bandingkan dengan bulan lalu, lihat kategori terbesar, ketahui batas aman harian. Semua dihitung dari
-                    data yang dicatat.
-                  </p>
+                  <p>Dibandingkan dengan bulan lalu, dihitung otomatis.</p>
                 </div>
                 <div className="insight-media" aria-hidden="true">
                   <div className="compare">
@@ -528,8 +552,8 @@ export default function LandingPage() {
                 <svg className="card-icon" aria-hidden="true">
                   <use href="#i-download" />
                 </svg>
-                <h3>Laporan yang bisa diunduh</h3>
-                <p>Ringkasan bulanan dalam PDF atau CSV.</p>
+                <h3>Laporan</h3>
+                <p>Unduh dalam PDF atau CSV.</p>
                 <div className="file-list" aria-hidden="true">
                   <div className="file">
                     <span className="file-tag">PDF</span>
@@ -554,8 +578,7 @@ export default function LandingPage() {
         <section className="profiles section" id="untuk-siapa" aria-labelledby="profile-title">
           <div className="wrap">
             <div className="section-head" data-reveal="up">
-              <h2 id="profile-title">Kategori dan saran menyesuaikan profilmu</h2>
-              <p>Satu aplikasi, tiga cara pakai. Kategori contoh sudah disiapkan untuk masing-masing profil.</p>
+              <h2 id="profile-title">Menyesuaikan profilmu</h2>
             </div>
 
             <div className="profile-grid">
@@ -564,7 +587,7 @@ export default function LandingPage() {
                   <use href="#i-graduation" />
                 </svg>
                 <h3>Pelajar dan remaja</h3>
-                <p>Catat uang saku dan jajan; menabung untuk barang impian.</p>
+                <p>Uang saku, jajan, dan tabungan.</p>
                 <div className="profile-visual">
                   <div className="mini-goal" aria-hidden="true">
                     <p className="mini-goal-label">Menabung untuk barang impian</p>
@@ -576,11 +599,6 @@ export default function LandingPage() {
                       <span className="mini-fill" style={{ width: '62%' }}></span>
                     </div>
                   </div>
-                  <ul className="profile-tags">
-                    <li>Uang saku</li>
-                    <li>Jajan</li>
-                    <li>Tabungan</li>
-                  </ul>
                 </div>
               </article>
 
@@ -589,7 +607,7 @@ export default function LandingPage() {
                   <use href="#i-house" />
                 </svg>
                 <h3>Mahasiswa dan anak kos</h3>
-                <p>Bagi uang bulanan sampai akhir bulan; pengingat kos, listrik, langganan.</p>
+                <p>Uang bulanan dan tagihan rutin.</p>
                 <div className="profile-visual">
                   <ul className="reminder-list" aria-label="Contoh pengingat tagihan">
                     <li>
@@ -605,11 +623,6 @@ export default function LandingPage() {
                       <span>12 hari lagi</span>
                     </li>
                   </ul>
-                  <ul className="profile-tags">
-                    <li>Uang bulanan</li>
-                    <li>Tagihan rutin</li>
-                    <li>Anggaran harian</li>
-                  </ul>
                 </div>
               </article>
 
@@ -618,7 +631,7 @@ export default function LandingPage() {
                   <use href="#i-storefront" />
                 </svg>
                 <h3>Pelaku UMKM</h3>
-                <p>Pisahkan pemasukan dan biaya usaha; lihat laba sederhana tiap bulan.</p>
+                <p>Pemasukan, biaya usaha, dan laba.</p>
                 <div className="profile-visual">
                   <div className="mini-ledger" aria-hidden="true">
                     <div>
@@ -634,11 +647,6 @@ export default function LandingPage() {
                       <b>=</b>
                     </div>
                   </div>
-                  <ul className="profile-tags">
-                    <li>Pemasukan</li>
-                    <li>Biaya usaha</li>
-                    <li>Laba</li>
-                  </ul>
                 </div>
               </article>
             </div>
@@ -649,7 +657,6 @@ export default function LandingPage() {
           <div className="wrap">
             <div className="section-head" data-reveal="up">
               <h2 id="cara-title">Cara kerja</h2>
-              <p>Tiga langkah berurutan. Tidak perlu belajar istilah akuntansi.</p>
             </div>
 
             <ol data-reveal="in" className="how-panel">
@@ -658,36 +665,21 @@ export default function LandingPage() {
                   1
                 </span>
                 <h3>Daftar dan pilih profil</h3>
-                <p>Pakai email dan kata sandi; kategori bawaan langsung siap.</p>
-                <div className="step-chips" aria-hidden="true">
-                  <span>Pelajar</span>
-                  <span>Anak kos</span>
-                  <span>UMKM</span>
-                </div>
+                <p>Kategori bawaan langsung siap.</p>
               </li>
               <li data-reveal="up" className="step">
                 <span className="step-num" aria-hidden="true">
                   2
                 </span>
                 <h3>Catat dan atur anggaran</h3>
-                <p>Masukkan transaksi, tetapkan batas bulanan per kategori.</p>
-                <div className="step-chips" aria-hidden="true">
-                  <span>Pemasukan</span>
-                  <span>Pengeluaran</span>
-                  <span>Anggaran</span>
-                </div>
+                <p>Masukkan transaksi dan batas bulanan.</p>
               </li>
               <li data-reveal="up" className="step">
                 <span className="step-num" aria-hidden="true">
                   3
                 </span>
                 <h3>Baca insight, ambil keputusan</h3>
-                <p>Lihat dashboard, terima peringatan, unduh laporan.</p>
-                <div className="step-chips" aria-hidden="true">
-                  <span>Dashboard</span>
-                  <span>Peringatan</span>
-                  <span>PDF / CSV</span>
-                </div>
+                <p>Lihat dashboard dan insight.</p>
               </li>
             </ol>
           </div>
@@ -700,11 +692,7 @@ export default function LandingPage() {
                 <svg className="security-icon" aria-hidden="true">
                   <use href="#i-shield" />
                 </svg>
-                <h2 id="security-title">Datamu hanya bisa dilihat olehmu.</h2>
-                <p>
-                  Kata sandi disimpan terenkripsi, akses memakai HTTPS, dan data keuangan tiap akun terpisah dari akun
-                  lain.
-                </p>
+                <h2 id="security-title">Datamu tetap milikmu.</h2>
               </div>
               <ul className="assurances">
                 <li data-reveal="up" className="assurance">
@@ -712,8 +700,7 @@ export default function LandingPage() {
                     <use href="#i-check" />
                   </svg>
                   <span>
-                    <strong>Kata sandi terenkripsi</strong>
-                    <span>Kata sandi disimpan dalam bentuk terenkripsi, bukan teks biasa.</span>
+                    <strong>Kata sandi di-hash, bukan teks biasa</strong>
                   </span>
                 </li>
                 <li data-reveal="up" className="assurance">
@@ -721,8 +708,7 @@ export default function LandingPage() {
                     <use href="#i-check" />
                   </svg>
                   <span>
-                    <strong>Akses lewat HTTPS</strong>
-                    <span>Data yang berpindah antara kamu dan Finara dilindungi.</span>
+                    <strong>Semua akses lewat HTTPS</strong>
                   </span>
                 </li>
                 <li data-reveal="up" className="assurance">
@@ -730,8 +716,7 @@ export default function LandingPage() {
                     <use href="#i-check" />
                   </svg>
                   <span>
-                    <strong>Data tiap akun terpisah</strong>
-                    <span>Catatan keuanganmu tidak bercampur dengan akun lain.</span>
+                    <strong>Data tiap akun terpisah dari akun lain</strong>
                   </span>
                 </li>
               </ul>
@@ -744,8 +729,8 @@ export default function LandingPage() {
             <div className="section-head" data-reveal="up">
               <h2 id="tentang-title">Tentang Finara dan Kelompok Nirmala</h2>
               <p>
-                Finara merupakan singkatan dari Financial Insight, Notes, Analysis, and Reporting Assistant yang
-                dirancang sebagai alat bantu edukasi dan perencanaan keuangan.
+                Financial Insight, Notes, Analysis, and Reporting Assistant. Alat bantu edukasi dan perencanaan
+                keuangan.
               </p>
             </div>
 
@@ -755,14 +740,7 @@ export default function LandingPage() {
                   <use href="#i-bulb" />
                 </svg>
                 <h3>Cerita dan tujuan Finara</h3>
-                <p>
-                  Pelajar, anak kos, dan pelaku UMKM sering mencatat transaksi secara terpisah atau mengandalkan ingatan
-                  sehingga anggaran bulanan mudah terlewat.
-                </p>
-                <p>
-                  Finara menggabungkan pencatatan transaksi, batas anggaran per kategori, target tabungan, pengingat
-                  tagihan, dan evaluasi otomatis dalam satu aplikasi web.
-                </p>
+                <p>Pencatatan, anggaran, tabungan, pengingat, dan insight dalam satu aplikasi web.</p>
               </article>
 
               <article data-reveal="up" className="card span-3">
@@ -775,23 +753,19 @@ export default function LandingPage() {
                     <svg className="icon" aria-hidden="true">
                       <use href="#i-check" />
                     </svg>
-                    <span>
-                      Pencatatan dilakukan manual oleh pengguna tanpa menghubungkan rekening bank atau dompet digital.
-                    </span>
+                    <span>Pencatatan manual, tanpa akses rekening bank.</span>
                   </li>
                   <li>
                     <svg className="icon" aria-hidden="true">
                       <use href="#i-check" />
                     </svg>
-                    <span>
-                      Insight dihitung menggunakan aturan yang jelas dari data transaksi tanpa kecerdasan buatan.
-                    </span>
+                    <span>Insight berbasis aturan, tanpa AI.</span>
                   </li>
                   <li>
                     <svg className="icon" aria-hidden="true">
                       <use href="#i-check" />
                     </svg>
-                    <span>Pencatatan UMKM berfokus pada pemasukan, biaya usaha, dan laba sederhana.</span>
+                    <span>UMKM: pemasukan, biaya usaha, laba sederhana.</span>
                   </li>
                 </ul>
               </article>
@@ -799,11 +773,7 @@ export default function LandingPage() {
               <article data-reveal="up" className="card span-6 team-card">
                 <div className="team-head">
                   <div>
-                    <h3>Tim pengembang Kelompok Nirmala</h3>
-                    <p>
-                      Proyek mata kuliah Rekayasa Perangkat Lunak kelas IF26A, Program Studi Informatika, Fakultas Ilmu
-                      Komputer, Universitas Amikom Purwokerto.
-                    </p>
+                    <h3>Tim pengembang Finara</h3>
                   </div>
                   <span className="team-badge">Informatika IF26A</span>
                 </div>
@@ -844,49 +814,31 @@ export default function LandingPage() {
           <div className="wrap faq-grid">
             <div className="faq-intro" data-reveal="up">
               <h2 id="faq-title">Tanya jawab</h2>
-              <p>Jawaban singkat untuk pertanyaan yang paling sering muncul.</p>
             </div>
 
             <div className="faq-list">
-              <details data-reveal="up" name="faq" open>
+              <details data-reveal="up" open>
                 <summary>
                   Apakah Finara terhubung ke rekening bank atau dompet digital?
                   <span className="faq-plus" aria-hidden="true"></span>
                 </summary>
-                <p>
-                  Tidak. Semua pencatatan dilakukan manual oleh pengguna, jadi tidak ada akses ke rekening atau dompet
-                  digital.
-                </p>
+                <p>Tidak. Semua dicatat manual, tanpa akses ke rekening atau dompet digital.</p>
               </details>
 
-              <details data-reveal="up" name="faq">
+              <details data-reveal="up">
                 <summary>
                   Apakah insight-nya memakai AI?
                   <span className="faq-plus" aria-hidden="true"></span>
                 </summary>
-                <p>Tidak. Insight dihitung dari aturan yang jelas berdasarkan transaksi yang kamu catat.</p>
+                <p>Tidak. Insight dihitung dari aturan jelas atas transaksi yang kamu catat.</p>
               </details>
 
-              <details data-reveal="up" name="faq">
+              <details data-reveal="up">
                 <summary>
                   Apakah cocok untuk pembukuan usaha lengkap?
                   <span className="faq-plus" aria-hidden="true"></span>
                 </summary>
-                <p>
-                  Finara dibatasi pada pemasukan, biaya usaha, dan laba sederhana. Fitur ini bukan pembukuan lengkap
-                  atau pengelolaan stok.
-                </p>
-              </details>
-
-              <details data-reveal="up" name="faq">
-                <summary>
-                  Apakah ini pengganti penasihat keuangan?
-                  <span className="faq-plus" aria-hidden="true"></span>
-                </summary>
-                <p>
-                  Bukan. Finara adalah alat bantu edukasi dan perencanaan keuangan, bukan pengganti saran dari
-                  profesional.
-                </p>
+                <p>Belum. Finara hanya mencatat pemasukan, biaya usaha, dan laba sederhana.</p>
               </details>
             </div>
           </div>
@@ -896,23 +848,15 @@ export default function LandingPage() {
           <div className="wrap contact-grid">
             <div className="contact-intro" data-reveal="up">
               <h2 id="kontak-title">Ada pertanyaan atau masukan?</h2>
-              <p>Tulis pesanmu di sini. Formulir akan membuka aplikasi email dengan pesan yang sudah terisi.</p>
+              <p>Tulis di sini, formulir akan membuka aplikasi emailmu.</p>
               <ul className="contact-list">
                 <li>
                   <span>Email</span>
-                  <a href="mailto:halo@finara.id">halo@finara.id</a>
-                </li>
-                <li>
-                  <span>Tim</span>
-                  <span>Kelompok Nirmala, IF26A</span>
-                </li>
-                <li>
-                  <span>Kampus</span>
-                  <span>Universitas Amikom Purwokerto</span>
+                  <a href="mailto:support.finara@gmail.com">support.finara@gmail.com</a>
                 </li>
               </ul>
             </div>
-            <form className="contact-form" data-reveal="up" data-email="halo@finara.id" noValidate>
+            <form className="contact-form" data-reveal="up" data-email="support.finara@gmail.com" noValidate>
               <div className="form-row">
                 <div className="field">
                   <label htmlFor="nama">Nama</label>
@@ -974,11 +918,11 @@ export default function LandingPage() {
             <div className="cta-block" data-reveal="in">
               <div className="cta-copy">
                 <h2 id="cta-title">Siap merapikan keuanganmu?</h2>
-                <p>Buat akun, pilih profil, dan catat transaksi pertamamu hari ini.</p>
+                <p>Buat akun dan catat transaksi pertamamu hari ini.</p>
               </div>
               <div className="cta-actions">
                 <a className="btn" href="/daftar">
-                  Buat akun Finara
+                  Daftar sekarang
                 </a>
               </div>
               <span className="cta-watermark wordmark" aria-hidden="true">
@@ -1039,13 +983,13 @@ export default function LandingPage() {
               <h3>Mulai</h3>
               <ul>
                 <li>
-                  <a href="/daftar">Buat akun Finara</a>
+                  <a href="/daftar">Daftar</a>
                 </li>
                 <li>
                   <a href="#kontak">Kirim masukan</a>
                 </li>
                 <li>
-                  <a href="mailto:halo@finara.id">halo@finara.id</a>
+                  <a href="mailto:support.finara@gmail.com">support.finara@gmail.com</a>
                 </li>
               </ul>
             </div>
@@ -1054,13 +998,11 @@ export default function LandingPage() {
           <div className="footer-bottom">
             <div className="footer-legal">
               <p>© 2026 Finara. Seluruh hak cipta dilindungi.</p>
-              <p>Dikembangkan oleh Kelompok Nirmala, Informatika Universitas Amikom Purwokerto.</p>
+              <p>Dikembangkan oleh Kelompok Nirmala</p>
             </div>
           </div>
         </div>
       </footer>
-
-      <LandingEffects />
     </>
   );
 }

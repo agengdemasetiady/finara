@@ -1808,14 +1808,14 @@ progress::-moz-progress-bar {
 
 .team-head {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
 }
 
 .team-head p {
-  margin-top: 6px;
+  margin-top: 0;
   max-width: 62ch;
 }
 
@@ -2287,16 +2287,21 @@ progress::-moz-progress-bar {
   padding-top: 22px;
   border-top: 1px solid var(--border);
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  align-items: flex-start;
+  justify-content: flex-start;
   gap: 16px 24px;
   flex-wrap: wrap;
 }
 
 .footer-legal {
   display: flex;
+  flex-direction: row;
   flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  width: 100%;
   gap: 6px 20px;
+  text-align: left;
   color: var(--muted);
   font-size: .8125rem;
 }
@@ -2570,16 +2575,18 @@ html.js .is-in .contact-list li {
 }
 
 .mobile-menu a {
-  animation: menu-link .55s var(--ease) calc(90ms + var(--i, 0) * 45ms) both;
+  animation: menu-link .7s var(--ease) calc(180ms + var(--i, 0) * 75ms) both;
   transition: color .3s var(--ease), padding-left .35s var(--ease), background-color .3s var(--ease);
 }
 
 .mobile-menu.is-closing a { animation: none; }
 .mobile-menu a:active { padding-left: 12px; color: var(--primary); background: var(--primary-soft); }
 
+/* Teks menu muncul bertahap dari kiri ke kanan: geser masuk + fade + tersapu kiri→kanan */
 @keyframes menu-link {
-  from { opacity: 0; transform: translateX(-14px); }
-  to   { opacity: 1; transform: translateX(0); }
+  from { opacity: 0; transform: translateX(-28px); clip-path: inset(0 100% 0 0); }
+  60%  { opacity: 1; }
+  to   { opacity: 1; transform: translateX(0); clip-path: inset(0 0 0 0); }
 }
 
 .site-header {
