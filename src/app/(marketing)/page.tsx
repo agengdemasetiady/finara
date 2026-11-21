@@ -829,6 +829,11 @@ export default function LandingPage() {
                     <p className="member-name">Talitha Nur Isnaini</p>
                     <span className="member-nim">26SA11A137</span>
                   </div>
+                  <div className="team-member">
+                    <span className="member-role">Anggota</span>
+                    <p className="member-name">Al Farel Rafa Prayoga</p>
+                    <span className="member-nim">26SA11A161</span>
+                  </div>
                 </div>
               </article>
             </div>
@@ -1044,26 +1049,13 @@ export default function LandingPage() {
                 </li>
               </ul>
             </div>
-
-            <div className="footer-col">
-              <h3>Proyek</h3>
-              <p className="footer-meta">Kelompok Nirmala</p>
-              <p className="footer-meta">Program Studi Informatika</p>
-              <p className="footer-meta">Universitas Amikom Purwokerto</p>
-            </div>
           </div>
 
           <div className="footer-bottom">
             <div className="footer-legal">
               <p>© 2026 Finara. Seluruh hak cipta dilindungi.</p>
-              <p>Finara merupakan alat bantu edukasi dan perencanaan keuangan.</p>
+              <p>Dikembangkan oleh Kelompok Nirmala, Informatika Universitas Amikom Purwokerto.</p>
             </div>
-            <a className="back-top" href="#top">
-              <span>Kembali ke atas</span>
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M12 19V5M5 12l7-7 7 7" />
-              </svg>
-            </a>
           </div>
         </div>
       </footer>

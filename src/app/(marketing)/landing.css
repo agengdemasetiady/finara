@@ -1747,7 +1747,7 @@ progress::-moz-progress-bar {
 
 .team-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(195px, 1fr));
   gap: 12px;
 }
 
@@ -1910,7 +1910,6 @@ progress::-moz-progress-bar {
   animation: faq-open .35s var(--ease);
 }
 
-/* Saat JS aktif, animasi isi dikendalikan lewat Web Animations API */
 .faq-list.is-enhanced details p { animation: none; }
 
 @keyframes faq-open {
@@ -2102,7 +2101,7 @@ progress::-moz-progress-bar {
   pointer-events: none;
 }
 
-/* Footer */
+/* Footer (3 Kolom Rapi) */
 .site-footer {
   background: var(--surface);
   border-top: 1px solid var(--border);
@@ -2112,8 +2111,8 @@ progress::-moz-progress-bar {
 
 .footer-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.45fr) repeat(3, minmax(0, 1fr));
-  gap: clamp(2rem, 4vw, 3rem);
+  grid-template-columns: minmax(0, 1.5fr) repeat(2, minmax(0, 1fr));
+  gap: clamp(2rem, 4vw, 3.5rem);
   align-items: start;
 }
 
@@ -2134,7 +2133,7 @@ progress::-moz-progress-bar {
   color: var(--muted);
   font-size: .9375rem;
   line-height: 1.6;
-  max-width: 34ch;
+  max-width: 36ch;
 }
 
 .footer-badge {
@@ -2193,12 +2192,6 @@ progress::-moz-progress-bar {
   transform: translateX(3px);
 }
 
-.footer-meta {
-  color: var(--muted);
-  font-size: .9375rem;
-  line-height: 1.5;
-}
-
 .footer-bottom {
   margin-top: clamp(2.5rem, 5vw, 3.5rem);
   padding-top: 22px;
@@ -2213,46 +2206,11 @@ progress::-moz-progress-bar {
 .footer-legal {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px 20px;
+  justify-content: space-between;
+  width: 100%;
+  gap: 8px 24px;
   color: var(--muted);
   font-size: .8125rem;
-}
-
-.back-top {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 14px;
-  border: 1px solid var(--border-strong);
-  border-radius: 999px;
-  background: var(--bg);
-  color: var(--ink);
-  font-size: .8125rem;
-  font-weight: 600;
-  text-decoration: none;
-  transition: border-color .3s var(--ease), background-color .3s var(--ease), transform .3s var(--ease);
-}
-
-.back-top svg {
-  width: 15px;
-  height: 15px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  transition: transform .3s var(--ease);
-}
-
-.back-top:hover {
-  border-color: var(--primary);
-  background: var(--primary-soft);
-  color: var(--primary);
-  transform: translateY(-2px);
-}
-
-.back-top:hover svg {
-  transform: translateY(-2px);
 }
 
 /* Smooth Entrance & Scroll Animations */
@@ -2289,7 +2247,6 @@ html.js .hero .bar {
   animation: bar-grow .75s var(--ease) calc(.38s + var(--n, 0) * 55ms) both;
 }
 
-/* Scroll reveal: pakai animation (bukan transition) supaya hover kartu tetap jalan setelah muncul */
 html.js [data-reveal]:not(.is-in) { opacity: 0; }
 
 html.js .is-in .cat-fill,
@@ -2383,6 +2340,7 @@ html.js .is-in .contact-list li {
 /* Responsive */
 @media (max-width: 900px) {
   .primary-nav { display: none; }
+  .header-actions { margin-left: auto; }
   .menu-btn { display: grid; }
 
   .hero-grid,
@@ -2404,7 +2362,6 @@ html.js .is-in .contact-list li {
     grid-template-columns: 1fr;
   }
 
-  .team-grid,
   .footer-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -2415,7 +2372,6 @@ html.js .is-in .contact-list li {
   .demo-lower,
   .card-insight,
   .form-row,
-  .team-grid,
   .footer-grid {
     grid-template-columns: 1fr;
   }
@@ -2436,7 +2392,6 @@ html.js .is-in .contact-list li {
     scroll-behavior: auto !important;
   }
 
-
   .demo-card {
     transform: none !important;
   }
@@ -2444,7 +2399,6 @@ html.js .is-in .contact-list li {
 
 /* ===== Polesan interaksi (menu, sentuh, header, scroll) ===== */
 
-/* Menu ponsel: buka menyapu dari atas, tutup meluncur naik, link muncul bergantian */
 .mobile-menu {
   animation: menu-in .5s var(--ease) both;
   transform-origin: top center;
@@ -2477,15 +2431,13 @@ html.js .is-in .contact-list li {
 
 .menu-btn .icon { transition: transform .5s var(--ease); }
 .menu-btn[aria-expanded="true"] { border-color: var(--primary); background: var(--primary-soft); }
-.menu-btn[aria-expanded="true"] .icon { transform: rotate(90deg) scale(.92); }
+.menu-btn[aria-expanded="true"] .icon { transform: scale(.92); }
 
-/* Header: sembunyi saat scroll turun (ponsel), muncul saat naik */
 .site-header {
   transition: box-shadow .4s var(--ease), background-color .4s var(--ease), border-color .4s var(--ease), translate .5s var(--ease);
 }
 .site-header.is-hidden { translate: 0 -100%; }
 
-/* Judul tujuan berdenyut halus setelah scroll anchor */
 .is-pulse { animation: head-pulse .9s var(--ease); transform-origin: left center; }
 @keyframes head-pulse {
   0%   { transform: scale(1); }
@@ -2493,7 +2445,6 @@ html.js .is-in .contact-list li {
   100% { transform: scale(1); }
 }
 
-/* Ripple + sentuhan responsif */
 .btn, .menu-btn, .tab, .mobile-menu a, .to-top, .faq-list summary {
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
@@ -2517,7 +2468,6 @@ html.js .is-in .contact-list li {
   to   { transform: scale(1); opacity: 0; }
 }
 
-/* Tombol magnetis (translate terpisah dari transform hover) */
 .btn {
   translate: var(--tx, 0) var(--ty, 0);
   transition: background-color .3s var(--ease), color .3s var(--ease), border-color .3s var(--ease), transform .4s var(--ease), box-shadow .4s var(--ease), translate .45s var(--ease);
@@ -2528,7 +2478,6 @@ html.js .is-in .contact-list li {
 
 #demo-panel { touch-action: pan-y; }
 
-/* Layar sentuh: tidak ada hover yang "menempel", diganti umpan balik tekan */
 @media (hover: none) {
   .card:hover, .profile-card:hover { transform: none; box-shadow: none; border-color: var(--border); }
   .card:hover .card-icon, .profile-card:hover .profile-icon { transform: none; }
@@ -2539,7 +2488,6 @@ html.js .is-in .contact-list li {
   .card:active, .profile-card:active { transform: scale(.985); }
 }
 
-/* Tombol kembali ke atas dengan cincin progres */
 .to-top {
   position: fixed;
   right: max(16px, env(safe-area-inset-right));
@@ -2572,4 +2520,52 @@ html.js .is-in .contact-list li {
 @media (prefers-reduced-motion: reduce) {
   .site-header.is-hidden { translate: none; }
   .btn { translate: none; }
+}
+
+/* ===== Custom Scrollbar Desktop Auto-Hide ===== */
+#finara-scroll-track {
+  position: fixed;
+  top: 76px;
+  right: 2px;
+  bottom: 4px;
+  width: 7px;
+  z-index: 70;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.45s ease-out, visibility 0.45s ease-out !important;
+}
+
+#finara-scroll-track.is-active,
+#finara-scroll-track:hover,
+#finara-scroll-track.is-dragging {
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 0.15s ease-in, visibility 0s !important;
+}
+
+#finara-scroll-thumb {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  min-height: 48px;
+  border-radius: 999px;
+  background-color: var(--border-strong);
+  pointer-events: auto;
+  cursor: grab;
+  will-change: transform;
+  transition: background-color 0.2s ease;
+}
+
+#finara-scroll-thumb:hover,
+#finara-scroll-track.is-dragging #finara-scroll-thumb {
+  background-color: var(--primary);
+  cursor: grabbing;
+}
+
+@media (hover: none), (pointer: coarse), (max-width: 900px) {
+  #finara-scroll-track {
+    display: none !important;
+  }
 }

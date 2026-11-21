@@ -22,8 +22,9 @@ export function initLanding(): () => void {
 
   const timers = new Set<ReturnType<typeof setTimeout>>();
   const rafs = new Set<number>();
-  const observers: IntersectionObserver[] = [];
+  const observers: (IntersectionObserver | ResizeObserver)[] = [];
   let createdTopBtn: HTMLButtonElement | null = null;
+  let createdScrollTrack: HTMLDivElement | null = null;
 
   const safeTimeout = (fn: () => void, ms: number) => {
     const id = setTimeout(() => {
@@ -941,6 +942,145 @@ export function initLanding(): () => void {
     frame();
   })();
 
+  /* ===== Custom Scrollbar Desktop Auto-Hide ===== */
+  (() => {
+    if (window.innerWidth <= 900 || window.matchMedia('(pointer: coarse)').matches) return;
+
+    const track = document.createElement('div');
+    track.id = 'finara-scroll-track';
+    track.setAttribute('aria-hidden', 'true');
+
+    const thumb = document.createElement('div');
+    thumb.id = 'finara-scroll-thumb';
+
+    track.appendChild(thumb);
+    document.body.appendChild(track);
+    createdScrollTrack = track;
+
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let rafId = 0;
+    let dragging = false;
+    let startY = 0;
+    let startScroll = 0;
+    let winHeight = 0;
+    let maxScroll = 0;
+    let maxTop = 0;
+
+    function updatePosition() {
+      if (maxScroll <= 0) return;
+      const currentTop = (window.scrollY / maxScroll) * maxTop;
+      thumb.style.transform = `translate3d(0, ${currentTop}px, 0)`;
+    }
+
+    function measure() {
+      const docHeight = document.documentElement.scrollHeight;
+      winHeight = window.innerHeight;
+      maxScroll = docHeight - winHeight;
+
+      if (maxScroll <= 0) {
+        thumb.style.display = 'none';
+        return;
+      }
+
+      thumb.style.display = 'block';
+      const trackHeight = winHeight - 80;
+      const thumbHeight = Math.max((winHeight / docHeight) * trackHeight, 48);
+      maxTop = trackHeight - thumbHeight;
+      thumb.style.height = thumbHeight + 'px';
+      updatePosition();
+    }
+
+    function reveal() {
+      if (maxScroll <= 0) return;
+      track.classList.add('is-active');
+      if (timer) {
+        clearTimeout(timer);
+        timers.delete(timer);
+      }
+      if (!dragging) {
+        timer = safeTimeout(() => {
+          track.classList.remove('is-active');
+        }, 1000);
+      }
+    }
+
+    window.addEventListener(
+      'scroll',
+      () => {
+        if (!rafId) {
+          rafId = safeRaf(() => {
+            updatePosition();
+            rafId = 0;
+          });
+        }
+        reveal();
+      },
+      { passive: true, signal }
+    );
+
+    window.addEventListener(
+      'mousemove',
+      (e) => {
+        if (!dragging && winHeight && window.innerWidth - e.clientX <= 24) {
+          reveal();
+        }
+      },
+      { passive: true, signal }
+    );
+
+    thumb.addEventListener(
+      'pointerdown',
+      (e) => {
+        e.preventDefault();
+        dragging = true;
+        startY = e.clientY;
+        startScroll = window.scrollY;
+        thumb.setPointerCapture(e.pointerId);
+        track.classList.add('is-dragging');
+        document.body.style.userSelect = 'none';
+        if (timer) {
+          clearTimeout(timer);
+          timers.delete(timer);
+        }
+      },
+      { signal }
+    );
+
+    thumb.addEventListener(
+      'pointermove',
+      (e) => {
+        if (!dragging || maxTop <= 0) return;
+        const delta = e.clientY - startY;
+        window.scrollTo({
+          top: startScroll + (delta / maxTop) * maxScroll,
+          behavior: 'instant',
+        });
+      },
+      { signal }
+    );
+
+    const endDrag = (e: PointerEvent) => {
+      if (!dragging) return;
+      dragging = false;
+      thumb.releasePointerCapture(e.pointerId);
+      track.classList.remove('is-dragging');
+      document.body.style.userSelect = '';
+      reveal();
+    };
+
+    thumb.addEventListener('pointerup', endDrag, { signal });
+    thumb.addEventListener('pointercancel', endDrag, { signal });
+
+    const ro = new ResizeObserver(measure);
+    ro.observe(document.body);
+    observers.push(ro);
+
+    window.addEventListener('resize', measure, { passive: true, signal });
+
+    measure();
+    reveal();
+  })();
+
   return () => {
     controller.abort();
     observers.forEach((obs) => obs.disconnect());
@@ -951,6 +1091,10 @@ export function initLanding(): () => void {
     if (createdTopBtn) {
       createdTopBtn.remove();
       createdTopBtn = null;
+    }
+    if (createdScrollTrack) {
+      createdScrollTrack.remove();
+      createdScrollTrack = null;
     }
     delete root.dataset.finaraLandingActive;
   };
