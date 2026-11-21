@@ -20,13 +20,20 @@ import {
   Users,
   ChartBar,
   X,
+  Check,
+  Checks,
+  Warning,
 } from '@phosphor-icons/react';
 import { keluarAkun } from '@/lib/actions/auth';
+import {
+  tandaiNotifikasiDibaca,
+  tandaiSemuaNotifikasiDibaca,
+} from '@/lib/actions/notifikasi';
 import { ThemeToggle } from './ThemeToggle';
 import { PeriodSelector } from './PeriodSelector';
 import { QuickTransactionModal, type SimpleCategory } from './QuickTransactionModal';
-import { getLabelProfil } from '@/lib/format';
-import type { PeranAkun, ProfilTipe } from '@/lib/types/database';
+import { getLabelProfil, formatTanggal } from '@/lib/format';
+import type { Notifikasi, PeranAkun, ProfilTipe } from '@/lib/types/database';
 
 interface AppShellProps {
   akun: {
@@ -38,6 +45,7 @@ interface AppShellProps {
   };
   categories: SimpleCategory[];
   unreadNotifCount: number;
+  notifications?: Notifikasi[];
   children: React.ReactNode;
 }
 
@@ -80,7 +88,13 @@ function getInisial(nama: string): string {
   return (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
-export default function AppShell({ akun, categories, unreadNotifCount, children }: AppShellProps) {
+export default function AppShell({
+  akun,
+  categories,
+  unreadNotifCount,
+  notifications = [],
+  children,
+}: AppShellProps) {
   const pathname = usePathname();
   const isAdmin = akun.peran === 'admin';
   const navItems = isAdmin ? ADMIN_NAV : USER_NAV;
@@ -88,13 +102,47 @@ export default function AppShell({ akun, categories, unreadNotifCount, children 
   const [catatOpen, setCatatOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const [notifPopupOpen, setNotifPopupOpen] = useState(false);
   const [pendingPath, setPendingPath] = useState<string | null>(null);
+  const [localNotifs, setLocalNotifs] = useState<Notifikasi[]>(notifications);
 
   const profileMenuRef = useRef<HTMLDivElement>(null);
+  const notifPopupRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setLocalNotifs(notifications);
+  }, [notifications]);
+
+  useEffect(() => {
+    function onNotifRead(e: Event) {
+      const id = (e as CustomEvent<{ id: string }>).detail?.id;
+      if (!id) return;
+      setLocalNotifs((prev) =>
+        prev.map((item) => (item.id === id ? { ...item, sudah_dibaca: true } : item))
+      );
+    }
+
+    function onNotifReadAll() {
+      setLocalNotifs((prev) => prev.map((item) => ({ ...item, sudah_dibaca: true })));
+    }
+
+    window.addEventListener('finara:notif-read', onNotifRead);
+    window.addEventListener('finara:notif-read-all', onNotifReadAll);
+    return () => {
+      window.removeEventListener('finara:notif-read', onNotifRead);
+      window.removeEventListener('finara:notif-read-all', onNotifReadAll);
+    };
+  }, []);
+
+  const liveUnreadCount =
+    notifications.length > 0
+      ? localNotifs.filter((n) => !n.sudah_dibaca).length
+      : unreadNotifCount;
 
   useEffect(() => {
     setPendingPath(null);
     setProfileMenuOpen(false);
+    setNotifPopupOpen(false);
   }, [pathname]);
 
   useEffect(() => {
@@ -102,12 +150,15 @@ export default function AppShell({ akun, categories, unreadNotifCount, children 
       if (profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node)) {
         setProfileMenuOpen(false);
       }
+      if (notifPopupRef.current && !notifPopupRef.current.contains(e.target as Node)) {
+        setNotifPopupOpen(false);
+      }
     }
-    if (profileMenuOpen) {
+    if (profileMenuOpen || notifPopupOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [profileMenuOpen]);
+  }, [profileMenuOpen, notifPopupOpen]);
 
   const currentPath = pendingPath || pathname;
 
@@ -124,6 +175,7 @@ export default function AppShell({ akun, categories, unreadNotifCount, children 
         setCatatOpen(false);
         setMoreOpen(false);
         setProfileMenuOpen(false);
+        setNotifPopupOpen(false);
       }
     }
     window.addEventListener('keydown', onKeyDown);
@@ -140,6 +192,34 @@ export default function AppShell({ akun, categories, unreadNotifCount, children 
     : akun.profil
     ? getLabelProfil(akun.profil)
     : 'Pengguna';
+
+  function handleReadSingleNotif(notif: Notifikasi) {
+    if (notif.sudah_dibaca) return;
+    const snapshot = localNotifs;
+    setLocalNotifs((prev) =>
+      prev.map((item) => (item.id === notif.id ? { ...item, sudah_dibaca: true } : item))
+    );
+    window.dispatchEvent(new CustomEvent('finara:notif-read', { detail: { id: notif.id } }));
+
+    void tandaiNotifikasiDibaca(notif.id).then((res) => {
+      if (!res.ok) {
+        setLocalNotifs(snapshot);
+      }
+    });
+  }
+
+  function handleReadAllNotifs() {
+    if (liveUnreadCount === 0) return;
+    const snapshot = localNotifs;
+    setLocalNotifs((prev) => prev.map((item) => ({ ...item, sudah_dibaca: true })));
+    window.dispatchEvent(new CustomEvent('finara:notif-read-all'));
+
+    void tandaiSemuaNotifikasiDibaca().then((res) => {
+      if (!res.ok) {
+        setLocalNotifs(snapshot);
+      }
+    });
+  }
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row max-w-full overflow-x-hidden">
@@ -221,7 +301,7 @@ export default function AppShell({ akun, categories, unreadNotifCount, children 
                 >
                   <span className="relative shrink-0">
                     <Bell size={20} weight={currentPath === '/notifikasi' ? 'fill' : 'regular'} />
-                    {unreadNotifCount > 0 && (
+                    {liveUnreadCount > 0 && (
                       <span
                         className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full"
                         style={{ backgroundColor: 'var(--accent)' }}
@@ -236,12 +316,12 @@ export default function AppShell({ akun, categories, unreadNotifCount, children 
                     }`}
                   >
                     <span>Notifikasi</span>
-                    {unreadNotifCount > 0 && (
+                    {liveUnreadCount > 0 && (
                       <span
                         className="text-xs px-2 py-0.5 rounded-full font-semibold"
                         style={{ backgroundColor: 'var(--accent-soft)', color: 'var(--accent-strong)' }}
                       >
-                        {unreadNotifCount}
+                        {liveUnreadCount}
                       </span>
                     )}
                   </span>
@@ -257,7 +337,6 @@ export default function AppShell({ akun, categories, unreadNotifCount, children 
           className="relative p-3 mt-auto border-t shrink-0"
           style={{ borderColor: 'var(--border)' }}
         >
-          {/* Pop-up Menu Akun */}
           {profileMenuOpen && (
             <div
               className="absolute bottom-[calc(100%+8px)] left-3 right-3 rounded-2xl border p-2 shadow-xl z-50 flex flex-col gap-1"
@@ -307,7 +386,6 @@ export default function AppShell({ akun, categories, unreadNotifCount, children 
             </div>
           )}
 
-          {/* Tombol Kartu Profil */}
           <button
             type="button"
             onClick={() => setProfileMenuOpen((prev) => !prev)}
@@ -344,7 +422,7 @@ export default function AppShell({ akun, categories, unreadNotifCount, children 
       <div className="flex-1 md:pl-[72px] flex flex-col min-w-0 pb-24 md:pb-8">
         {/* Topbar */}
         <header
-          className="sticky top-0 z-30 border-b px-3 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-2 max-w-full overflow-x-clip"
+          className="sticky top-0 z-30 border-b px-3 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-2 max-w-full"
           style={{
             backgroundColor: 'var(--bg-glass)',
             borderColor: 'var(--border)',
@@ -379,21 +457,131 @@ export default function AppShell({ akun, categories, unreadNotifCount, children 
 
             {!isAdmin && (
               <>
-                <Link
-                  href="/notifikasi"
-                  onClick={() => setPendingPath('/notifikasi')}
-                  aria-label="Notifikasi"
-                  className="md:hidden relative w-9 h-9 shrink-0 rounded-full inline-flex items-center justify-center border active:scale-95 transition-transform"
-                  style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
-                >
-                  <Bell size={18} />
-                  {unreadNotifCount > 0 && (
-                    <span
-                      className="absolute top-2 right-2 w-2 h-2 rounded-full"
-                      style={{ backgroundColor: 'var(--accent)' }}
-                    />
+                {/* Tombol Popup Notifikasi (Mobile & Desktop) */}
+                <div ref={notifPopupRef} className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setNotifPopupOpen((prev) => !prev)}
+                    aria-label="Notifikasi"
+                    aria-expanded={notifPopupOpen}
+                    className="relative w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-full inline-flex items-center justify-center border active:scale-95 transition-transform cursor-pointer"
+                    style={{
+                      backgroundColor: notifPopupOpen ? 'var(--primary-soft)' : 'var(--surface)',
+                      borderColor: notifPopupOpen ? 'var(--primary)' : 'var(--border)',
+                      color: notifPopupOpen ? 'var(--primary)' : 'inherit',
+                    }}
+                  >
+                    <Bell size={18} weight={notifPopupOpen ? 'fill' : 'regular'} />
+                    {liveUnreadCount > 0 && (
+                      <span
+                        className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full text-[10px] font-bold inline-flex items-center justify-center text-white"
+                        style={{ backgroundColor: 'var(--accent-strong)' }}
+                      >
+                        {liveUnreadCount > 9 ? '9+' : liveUnreadCount}
+                      </span>
+                    )}
+                  </button>
+
+                  {/* Popover Desktop */}
+                  {notifPopupOpen && (
+                    <div
+                      className="hidden sm:flex flex-col absolute right-0 top-[calc(100%+10px)] w-96 rounded-3xl border shadow-2xl z-50 overflow-hidden"
+                      style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
+                    >
+                      <div
+                        className="px-4 py-3.5 border-b flex items-center justify-between gap-2"
+                        style={{ borderColor: 'var(--border)' }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <h2 className="fn-display text-sm font-semibold">Notifikasi</h2>
+                          {liveUnreadCount > 0 && (
+                            <span
+                              className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                              style={{ backgroundColor: 'var(--accent-soft)', color: 'var(--accent-strong)' }}
+                            >
+                              {liveUnreadCount} baru
+                            </span>
+                          )}
+                        </div>
+                        {liveUnreadCount > 0 && (
+                          <button
+                            type="button"
+                            onClick={handleReadAllNotifs}
+                            className="inline-flex items-center gap-1 text-xs font-semibold hover:opacity-80 cursor-pointer"
+                            style={{ color: 'var(--primary)' }}
+                          >
+                            <Checks size={15} weight="bold" />
+                            <span>Baca semua</span>
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="max-h-80 overflow-y-auto divide-y" style={{ borderColor: 'var(--border)' }}>
+                        {localNotifs.length === 0 ? (
+                          <div className="p-6 text-center text-xs" style={{ color: 'var(--muted)' }}>
+                            Belum ada notifikasi terbaru.
+                          </div>
+                        ) : (
+                          localNotifs.slice(0, 6).map((item) => {
+                            const isAnggaran = item.jenis === 'PERINGATAN_ANGGARAN';
+                            return (
+                              <button
+                                key={item.id}
+                                type="button"
+                                onClick={() => handleReadSingleNotif(item)}
+                                className="w-full text-left px-4 py-3 flex items-start gap-3 transition-colors cursor-pointer hover:opacity-90"
+                                style={{
+                                  backgroundColor: item.sudah_dibaca ? 'transparent' : 'var(--primary-soft)',
+                                }}
+                              >
+                                <span
+                                  className="p-2 rounded-xl shrink-0 mt-0.5"
+                                  style={{
+                                    backgroundColor: isAnggaran ? 'var(--accent-soft)' : 'var(--bg)',
+                                    color: isAnggaran ? 'var(--accent-strong)' : 'var(--primary)',
+                                  }}
+                                >
+                                  {isAnggaran ? <Warning size={16} weight="fill" /> : <Bell size={16} weight="fill" />}
+                                </span>
+                                <div className="flex-1 min-w-0">
+                                  <p className={`text-xs leading-relaxed ${item.sudah_dibaca ? 'font-normal' : 'font-semibold'}`}>
+                                    {item.pesan}
+                                  </p>
+                                  <span className="text-[11px] mt-1 block" style={{ color: 'var(--muted)' }}>
+                                    {formatTanggal(item.dibuat_pada)}
+                                  </span>
+                                </div>
+                                {!item.sudah_dibaca && (
+                                  <span
+                                    className="w-2 h-2 rounded-full shrink-0 mt-2"
+                                    style={{ backgroundColor: 'var(--primary)' }}
+                                  />
+                                )}
+                              </button>
+                            );
+                          })
+                        )}
+                      </div>
+
+                      <div
+                        className="px-4 py-2.5 border-t text-center"
+                        style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)' }}
+                      >
+                        <Link
+                          href="/notifikasi"
+                          onClick={() => {
+                            setNotifPopupOpen(false);
+                            setPendingPath('/notifikasi');
+                          }}
+                          className="text-xs font-semibold hover:underline"
+                          style={{ color: 'var(--primary)' }}
+                        >
+                          Lihat semua notifikasi
+                        </Link>
+                      </div>
+                    </div>
                   )}
-                </Link>
+                </div>
 
                 <div className="hidden md:block">
                   <button
@@ -444,6 +632,122 @@ export default function AppShell({ akun, categories, unreadNotifCount, children 
           )}
         </main>
       </div>
+
+      {/* Mobile Bottom Sheet Popup untuk Notifikasi */}
+      {notifPopupOpen && !isAdmin && (
+        <div
+          className="sm:hidden fixed inset-0 z-50 flex items-end"
+          style={{ backgroundColor: 'rgba(13, 23, 19, 0.5)', backdropFilter: 'blur(3px)' }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setNotifPopupOpen(false);
+          }}
+        >
+          <div
+            className="w-full rounded-t-3xl border-t shadow-2xl max-h-[82dvh] flex flex-col overflow-hidden"
+            style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
+          >
+            <div className="px-5 pt-4 pb-3 border-b flex items-center justify-between gap-2" style={{ borderColor: 'var(--border)' }}>
+              <div className="flex items-center gap-2">
+                <h2 className="fn-display text-base font-semibold">Notifikasi</h2>
+                {liveUnreadCount > 0 && (
+                  <span
+                    className="text-xs font-semibold px-2 py-0.5 rounded-full"
+                    style={{ backgroundColor: 'var(--accent-soft)', color: 'var(--accent-strong)' }}
+                  >
+                    {liveUnreadCount} baru
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {liveUnreadCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleReadAllNotifs}
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-semibold cursor-pointer"
+                    style={{ backgroundColor: 'var(--primary-soft)', color: 'var(--primary)' }}
+                  >
+                    <Check size={14} weight="bold" />
+                    <span>Baca semua</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setNotifPopupOpen(false)}
+                  aria-label="Tutup notifikasi"
+                  className="w-8 h-8 rounded-full inline-flex items-center justify-center cursor-pointer"
+                  style={{ backgroundColor: 'var(--bg)' }}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto divide-y" style={{ borderColor: 'var(--border)' }}>
+              {localNotifs.length === 0 ? (
+                <div className="p-8 text-center text-sm" style={{ color: 'var(--muted)' }}>
+                  Belum ada notifikasi terbaru.
+                </div>
+              ) : (
+                localNotifs.slice(0, 8).map((item) => {
+                  const isAnggaran = item.jenis === 'PERINGATAN_ANGGARAN';
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => handleReadSingleNotif(item)}
+                      className="w-full text-left px-5 py-3.5 flex items-start gap-3 transition-colors cursor-pointer"
+                      style={{
+                        backgroundColor: item.sudah_dibaca ? 'transparent' : 'var(--primary-soft)',
+                      }}
+                    >
+                      <span
+                        className="p-2 rounded-xl shrink-0 mt-0.5"
+                        style={{
+                          backgroundColor: isAnggaran ? 'var(--accent-soft)' : 'var(--bg)',
+                          color: isAnggaran ? 'var(--accent-strong)' : 'var(--primary)',
+                        }}
+                      >
+                        {isAnggaran ? <Warning size={18} weight="fill" /> : <Bell size={18} weight="fill" />}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-xs sm:text-sm leading-relaxed ${item.sudah_dibaca ? 'font-normal' : 'font-semibold'}`}>
+                          {item.pesan}
+                        </p>
+                        <span className="text-[11px] mt-1 block" style={{ color: 'var(--muted)' }}>
+                          {formatTanggal(item.dibuat_pada)}
+                        </span>
+                      </div>
+                      {!item.sudah_dibaca && (
+                        <span
+                          className="w-2.5 h-2.5 rounded-full shrink-0 mt-1.5"
+                          style={{ backgroundColor: 'var(--primary)' }}
+                        />
+                      )}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+
+            <div
+              className="px-5 py-3.5 pb-[max(1rem,env(safe-area-inset-bottom))] border-t text-center"
+              style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)' }}
+            >
+              <Link
+                href="/notifikasi"
+                onClick={() => {
+                  setNotifPopupOpen(false);
+                  setPendingPath('/notifikasi');
+                }}
+                className="text-xs font-semibold hover:underline"
+                style={{ color: 'var(--primary)' }}
+              >
+                Lihat semua notifikasi
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Mobile Bottom Tab Bar */}
       {!isAdmin ? (

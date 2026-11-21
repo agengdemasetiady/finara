@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Bell, Check, Checks, Warning } from '@phosphor-icons/react';
 import { tandaiNotifikasiDibaca, tandaiSemuaNotifikasiDibaca } from '@/lib/actions/notifikasi';
 import { useToast } from '@/components/ui/ToastProvider';
@@ -9,17 +9,66 @@ import type { Notifikasi } from '@/lib/types/database';
 
 export function NotifikasiClient({ items }: { items: Notifikasi[] }) {
   const { showToast } = useToast();
-  const unreadCount = items.filter((n) => !n.sudah_dibaca).length;
+  const [localItems, setLocalItems] = useState<Notifikasi[]>(items);
 
-  async function handleReadOne(id: string) {
-    const res = await tandaiNotifikasiDibaca(id);
-    if (!res.ok) showToast(res.message, 'error');
+  useEffect(() => {
+    setLocalItems(items);
+  }, [items]);
+
+  useEffect(() => {
+    function onNotifRead(e: Event) {
+      const id = (e as CustomEvent<{ id: string }>).detail?.id;
+      if (!id) return;
+      setLocalItems((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, sudah_dibaca: true } : n))
+      );
+    }
+
+    function onNotifReadAll() {
+      setLocalItems((prev) => prev.map((n) => ({ ...n, sudah_dibaca: true })));
+    }
+
+    window.addEventListener('finara:notif-read', onNotifRead);
+    window.addEventListener('finara:notif-read-all', onNotifReadAll);
+    return () => {
+      window.removeEventListener('finara:notif-read', onNotifRead);
+      window.removeEventListener('finara:notif-read-all', onNotifReadAll);
+    };
+  }, []);
+
+  const unreadCount = localItems.filter((n) => !n.sudah_dibaca).length;
+
+  function handleReadOne(notif: Notifikasi) {
+    if (notif.sudah_dibaca) return;
+    const snapshot = localItems;
+
+    setLocalItems((prev) =>
+      prev.map((n) => (n.id === notif.id ? { ...n, sudah_dibaca: true } : n))
+    );
+    window.dispatchEvent(new CustomEvent('finara:notif-read', { detail: { id: notif.id } }));
+
+    void tandaiNotifikasiDibaca(notif.id).then((res) => {
+      if (!res.ok) {
+        setLocalItems(snapshot);
+        showToast(res.message, 'error');
+      }
+    });
   }
 
-  async function handleReadAll() {
-    const res = await tandaiSemuaNotifikasiDibaca();
-    if (!res.ok) showToast(res.message, 'error');
-    else showToast(res.message, 'success');
+  function handleReadAll() {
+    if (unreadCount === 0) return;
+    const snapshot = localItems;
+
+    setLocalItems((prev) => prev.map((n) => ({ ...n, sudah_dibaca: true })));
+    window.dispatchEvent(new CustomEvent('finara:notif-read-all'));
+    showToast('Semua notifikasi ditandai sudah dibaca.', 'success');
+
+    void tandaiSemuaNotifikasiDibaca().then((res) => {
+      if (!res.ok) {
+        setLocalItems(snapshot);
+        showToast(res.message, 'error');
+      }
+    });
   }
 
   return (
@@ -33,7 +82,7 @@ export function NotifikasiClient({ items }: { items: Notifikasi[] }) {
         </div>
       )}
 
-      {items.length === 0 ? (
+      {localItems.length === 0 ? (
         <div className="fn-card p-8 text-center">
           <p className="fn-display text-lg font-semibold">Belum ada notifikasi</p>
           <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
@@ -43,12 +92,15 @@ export function NotifikasiClient({ items }: { items: Notifikasi[] }) {
       ) : (
         <div className="fn-card overflow-hidden">
           <ul className="divide-y" style={{ borderColor: 'var(--border)' }}>
-            {items.map((n) => {
+            {localItems.map((n) => {
               const isAnggaran = n.jenis === 'PERINGATAN_ANGGARAN';
               return (
                 <li
                   key={n.id}
-                  className="p-4 sm:px-5 flex items-center justify-between gap-3"
+                  onClick={() => handleReadOne(n)}
+                  className={`p-4 sm:px-5 flex items-center justify-between gap-3 transition-colors ${
+                    n.sudah_dibaca ? 'cursor-default' : 'cursor-pointer'
+                  }`}
                   style={{
                     backgroundColor: n.sudah_dibaca ? 'transparent' : 'var(--primary-soft)',
                   }}
@@ -64,7 +116,9 @@ export function NotifikasiClient({ items }: { items: Notifikasi[] }) {
                       {isAnggaran ? <Warning size={20} weight="fill" /> : <Bell size={20} weight="fill" />}
                     </span>
                     <div>
-                      <p className="text-sm font-semibold">{n.pesan}</p>
+                      <p className={`text-sm ${n.sudah_dibaca ? 'font-normal' : 'font-semibold'}`}>
+                        {n.pesan}
+                      </p>
                       <p className="text-xs mt-0.5" style={{ color: 'var(--muted)' }}>
                         {isAnggaran ? 'Peringatan Anggaran' : 'Pengingat Tagihan'} •{' '}
                         {formatTanggal(n.dibuat_pada)}
@@ -75,7 +129,10 @@ export function NotifikasiClient({ items }: { items: Notifikasi[] }) {
                   {!n.sudah_dibaca && (
                     <button
                       type="button"
-                      onClick={() => handleReadOne(n.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleReadOne(n);
+                      }}
                       aria-label="Tandai dibaca"
                       className="p-2 rounded-full border shrink-0 cursor-pointer"
                       style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border-strong)' }}

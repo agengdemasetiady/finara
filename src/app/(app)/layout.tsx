@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { ToastProvider } from '@/components/ui/ToastProvider';
 import AppShell from '@/components/app/AppShell';
+import type { Notifikasi } from '@/lib/types/database';
 import './app.css';
 
 export const viewport: Viewport = {
@@ -75,7 +76,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const isAdmin = akun.peran === 'admin';
 
-  // Ambil kategori & jumlah notifikasi belum dibaca untuk pengguna biasa
   let categories: Array<{
     id: string;
     nama: string;
@@ -86,10 +86,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     profil_target: string;
   }> = [];
   let unreadNotifCount = 0;
+  let notifications: Notifikasi[] = [];
 
   if (!isAdmin) {
     const profil = akun.profil || 'kos';
-    const [{ data: katData }, { count }] = await Promise.all([
+    const [{ data: katData }, { count }, { data: notifData }] = await Promise.all([
       supabase
         .from('kategori')
         .select('id, nama, jenis, ikon, warna, is_bawaan, profil_target')
@@ -100,10 +101,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         .select('id', { count: 'exact', head: true })
         .eq('id_pengguna', user.id)
         .eq('sudah_dibaca', false),
+      supabase
+        .from('notifikasi')
+        .select('*')
+        .eq('id_pengguna', user.id)
+        .order('dibuat_pada', { ascending: false })
+        .limit(15),
     ]);
 
     categories = (katData as typeof categories) || [];
     unreadNotifCount = count || 0;
+    notifications = (notifData as Notifikasi[]) || [];
   }
 
   return (
@@ -129,6 +137,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             }}
             categories={categories}
             unreadNotifCount={unreadNotifCount}
+            notifications={notifications}
           >
             <div className="fn-page-enter">{children}</div>
           </AppShell>
