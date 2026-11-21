@@ -51,6 +51,9 @@ export function QuickTransactionModal({
 
   useEffect(() => {
     if (open) {
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
       setRawDigits('');
       setCatatan('');
       setShowNote(false);
@@ -123,7 +126,8 @@ export function QuickTransactionModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="fn-catat-title"
-        className="w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl border"
+        tabIndex={-1}
+        className="w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl border max-h-[92dvh] overflow-y-auto"
         style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
       >
         <div className="flex items-center justify-between mb-4">
@@ -142,7 +146,6 @@ export function QuickTransactionModal({
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          {/* Langkah 1: Jenis */}
           <div
             className="grid grid-cols-2 p-1 rounded-full"
             style={{ backgroundColor: 'var(--bg)' }}
@@ -168,7 +171,6 @@ export function QuickTransactionModal({
             })}
           </div>
 
-          {/* Langkah 2a: Nominal besar */}
           <div
             className="rounded-2xl px-4 py-3 border flex items-baseline gap-2"
             style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border-strong)' }}
@@ -180,6 +182,7 @@ export function QuickTransactionModal({
               ref={amountRef}
               type="text"
               inputMode="numeric"
+              autoFocus={false}
               aria-label="Nominal transaksi"
               value={rawDigits ? formatAngka(rawDigits) : ''}
               onChange={(e) => handleAmountChange(e.target.value)}
@@ -188,7 +191,6 @@ export function QuickTransactionModal({
             />
           </div>
 
-          {/* Langkah 2b: Grid chip kategori */}
           <div>
             <p className="text-xs font-semibold mb-2" style={{ color: 'var(--muted)' }}>
               Kategori
@@ -217,7 +219,6 @@ export function QuickTransactionModal({
             </div>
           </div>
 
-          {/* Tanggal & catatan opsional */}
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center gap-1.5">
               <button
@@ -300,7 +301,6 @@ export function QuickTransactionModal({
             />
           )}
 
-          {/* Langkah 3: Simpan */}
           <button type="submit" disabled={submitting} className="fn-btn fn-btn-primary w-full min-h-[48px]">
             {submitting ? 'Menyimpan...' : 'Simpan'}
           </button>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { MagnifyingGlass, PencilSimple, Trash, X } from '@phosphor-icons/react';
 import { ubahTransaksi, hapusTransaksi } from '@/lib/actions/transaksi';
@@ -30,8 +30,9 @@ export function TransaksiClient({
   const [jenisFilter, setJenisFilter] = useState<'SEMUA' | JenisTrx>('SEMUA');
   const [katFilter, setKatFilter] = useState<string>('SEMUA');
   const [search, setSearch] = useState('');
+  const [filterInteracting, setFilterInteracting] = useState(false);
+  const interactTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // State modal edit
   const [editing, setEditing] = useState<TransaksiRow | null>(null);
   const [editJenis, setEditJenis] = useState<JenisTrx>('PENGELUARAN');
   const [editDigits, setEditDigits] = useState('');
@@ -40,14 +41,23 @@ export function TransaksiClient({
   const [editCatatan, setEditCatatan] = useState('');
   const [savingEdit, setSavingEdit] = useState(false);
 
-  // Konfirmasi hapus
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  // State portal agar modal tampil penuh di atas navbar
   const [mounted, setMounted] = useState(false);
   useEffect(() => {
     setMounted(true);
+    return () => {
+      if (interactTimerRef.current) clearTimeout(interactTimerRef.current);
+    };
   }, []);
+
+  function triggerFilterScrollbar() {
+    setFilterInteracting(true);
+    if (interactTimerRef.current) clearTimeout(interactTimerRef.current);
+    interactTimerRef.current = setTimeout(() => {
+      setFilterInteracting(false);
+    }, 1200);
+  }
 
   const katMap = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
 
@@ -65,7 +75,6 @@ export function TransaksiClient({
     });
   }, [transactions, jenisFilter, katFilter, search, katMap]);
 
-  // Kelompokkan per tanggal
   const grouped = useMemo(() => {
     const groups = new Map<string, TransaksiRow[]>();
     for (const item of filtered) {
@@ -129,9 +138,40 @@ export function TransaksiClient({
 
   return (
     <div className="flex flex-col gap-5">
+      <style>{`
+        .fn-filter-strip {
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+        }
+        .fn-filter-strip::-webkit-scrollbar {
+          height: 0px;
+          background: transparent;
+        }
+        .fn-filter-strip.is-interacting {
+          scrollbar-width: thin;
+          scrollbar-color: var(--border-strong) transparent;
+        }
+        .fn-filter-strip.is-interacting::-webkit-scrollbar {
+          height: 3px;
+        }
+        .fn-filter-strip.is-interacting::-webkit-scrollbar-thumb {
+          background: var(--border-strong);
+          border-radius: 9999px;
+        }
+      `}</style>
+
       {/* Filter & Pencarian */}
       <div className="fn-card p-4 flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
+        <div
+          onScroll={triggerFilterScrollbar}
+          onTouchStart={triggerFilterScrollbar}
+          onPointerDown={triggerFilterScrollbar}
+          onMouseEnter={() => setFilterInteracting(true)}
+          onMouseLeave={() => setFilterInteracting(false)}
+          className={`fn-filter-strip flex items-center gap-2 overflow-x-auto py-0.5 ${
+            filterInteracting ? 'is-interacting' : ''
+          }`}
+        >
           {(
             [
               { id: 'SEMUA', label: 'Semua' },
@@ -161,7 +201,7 @@ export function TransaksiClient({
             aria-label="Filter kategori"
             value={katFilter}
             onChange={(e) => setKatFilter(e.target.value)}
-            className="px-3 py-1.5 rounded-full text-xs font-semibold border cursor-pointer"
+            className="px-3 py-1.5 rounded-full text-xs font-semibold border cursor-pointer shrink-0"
             style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)', color: 'var(--ink)' }}
           >
             <option value="SEMUA">Semua kategori</option>
@@ -176,7 +216,7 @@ export function TransaksiClient({
         <div className="relative md:w-64">
           <MagnifyingGlass
             size={16}
-            className="absolute left-3.5 top-1/2 -translate-y-1/2"
+            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2"
             style={{ color: 'var(--muted)' }}
           />
           <input
@@ -184,7 +224,8 @@ export function TransaksiClient({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Cari catatan atau kategori..."
-            className="fn-input pl-9 min-h-[40px] text-xs sm:text-sm"
+            style={{ paddingLeft: '2.5rem' }}
+            className="fn-input min-h-[40px] text-xs sm:text-sm"
           />
         </div>
       </div>
@@ -315,7 +356,6 @@ export function TransaksiClient({
               className="w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] border-t sm:border shadow-2xl max-h-[90dvh] overflow-y-auto"
               style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
             >
-              {/* Handle bar visual khusus tampilan mobile */}
               <div
                 className="w-10 h-1 rounded-full mx-auto mb-4 sm:hidden opacity-40"
                 style={{ backgroundColor: 'var(--muted)' }}
