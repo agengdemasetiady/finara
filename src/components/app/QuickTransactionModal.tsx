@@ -64,6 +64,13 @@ export function QuickTransactionModal({
   const todayISO = getTodayISO();
   const yesterdayISO = format(subDays(new Date(), 1), 'yyyy-MM-dd');
 
+  const gridColsClass =
+    filteredCats.length === 1
+      ? 'grid-cols-1'
+      : filteredCats.length === 2
+        ? 'grid-cols-2'
+        : 'grid-cols-3';
+
   function handleAmountChange(val: string) {
     const digits = val.replace(/\D/g, '').slice(0, 12);
     setRawDigits(digits);
@@ -186,7 +193,7 @@ export function QuickTransactionModal({
             <p className="text-xs font-semibold mb-2" style={{ color: 'var(--muted)' }}>
               Kategori
             </p>
-            <div className="grid grid-cols-3 gap-2 max-h-40 overflow-y-auto pr-0.5">
+            <div className={`grid ${gridColsClass} gap-2 max-h-52 overflow-y-auto pr-0.5`}>
               {filteredCats.map((kat) => {
                 const active = selectedKat === kat.id;
                 return (
@@ -194,14 +201,16 @@ export function QuickTransactionModal({
                     key={kat.id}
                     type="button"
                     onClick={() => setSelectedKat(kat.id)}
-                    className="flex flex-col items-center gap-1.5 p-2.5 rounded-2xl border text-center transition-all cursor-pointer"
+                    className="flex flex-col items-center justify-center gap-1.5 px-2 py-2.5 min-h-[78px] rounded-2xl border text-center transition-all cursor-pointer"
                     style={{
                       backgroundColor: active ? 'var(--primary-soft)' : 'var(--bg)',
                       borderColor: active ? 'var(--primary)' : 'var(--border)',
                     }}
                   >
                     <CategoryIconChip ikon={kat.ikon} warna={kat.warna} size={32} />
-                    <span className="text-xs font-medium line-clamp-1">{kat.nama}</span>
+                    <span className="w-full text-[11px] sm:text-xs font-medium leading-tight line-clamp-2 break-words">
+                      {kat.nama}
+                    </span>
                   </button>
                 );
               })}
