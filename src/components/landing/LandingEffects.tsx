@@ -298,74 +298,74 @@ export default function LandingEffects() {
     }
 
     /* ===== 2. Tema terang/gelap ===== */
-    const themeBtn = document.querySelector<HTMLButtonElement>('.theme-switch');
-    const metaTheme = document.getElementById('meta-theme') as HTMLMetaElement | null;
-    const THEME_KEY = 'finara-theme';
-    let themeTimer: ReturnType<typeof setTimeout> | null = null;
+    const themeBtn = document.querySelector<HTMLButtonElement>('.theme-switch')
+    const metaTheme = document.getElementById('meta-theme') as HTMLMetaElement | null
+    const THEME_KEY = 'finara-theme'
 
     if (themeBtn) {
       const syncTheme = () => {
-        const dark = root.dataset.theme === 'dark';
-        themeBtn.setAttribute('aria-checked', String(dark));
-        if (metaTheme) metaTheme.content = dark ? '#0D1713' : '#F6F7F2';
-      };
+        const dark = root.dataset.theme === 'dark'
+        themeBtn.setAttribute('aria-checked', String(dark))
+        if (metaTheme) metaTheme.content = dark ? '#0D1713' : '#F6F7F2'
+      }
 
-      const applyTheme = (theme: 'light' | 'dark') => {
-        root.dataset.theme = theme;
-        syncTheme();
-      };
+      const applyTheme = (theme: 'light' | 'dark', instant = false) => {
+        if (instant) {
+          root.classList.add('is-switching-theme')
+        }
+        root.dataset.theme = theme
+        syncTheme()
+        if (instant) {
+          requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+              root.classList.remove('is-switching-theme')
+            })
+          })
+        }
+      }
 
       const setTheme = (theme: 'light' | 'dark') => {
         try {
-          localStorage.setItem(THEME_KEY, theme);
+          localStorage.setItem(THEME_KEY, theme)
         } catch {
-          // Abaikan jika storage diblokir
         }
-        if (!motionOK()) {
-          applyTheme(theme);
-          return;
-        }
-        root.classList.add('theme-fade');
-        applyTheme(theme);
-        if (themeTimer) clearTimeout(themeTimer);
-        themeTimer = setTimeout(() => root.classList.remove('theme-fade'), 260);
-      };
+        applyTheme(theme, true)
+      }
 
       try {
-        const saved = localStorage.getItem(THEME_KEY);
+        const saved = localStorage.getItem(THEME_KEY)
         if (saved === 'dark' || saved === 'light') {
-          applyTheme(saved);
+          applyTheme(saved)
         } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-          applyTheme('dark');
+          applyTheme('dark')
         } else {
-          syncTheme();
+          syncTheme()
         }
       } catch {
-        syncTheme();
+        syncTheme()
       }
 
       themeBtn.addEventListener(
         'click',
         () => {
-          setTheme(root.dataset.theme === 'dark' ? 'light' : 'dark');
-          buzz(10);
+          const next = root.dataset.theme === 'dark' ? 'light' : 'dark'
+          setTheme(next)
         },
         { signal }
-      );
+      )
 
       window.matchMedia('(prefers-color-scheme: dark)').addEventListener(
         'change',
         (e) => {
-          let saved: string | null = null;
+          let saved: string | null = null
           try {
-            saved = localStorage.getItem(THEME_KEY);
+            saved = localStorage.getItem(THEME_KEY)
           } catch {
-            // Abaikan
           }
-          if (!saved) applyTheme(e.matches ? 'dark' : 'light');
+          if (!saved) applyTheme(e.matches ? 'dark' : 'light', true)
         },
         { signal }
-      );
+      )
     }
 
     /* ===== 3. Animasi, sorot kartu, tilt demo, scrollspy, dan header ===== */
@@ -418,58 +418,34 @@ export default function LandingEffects() {
       );
     }
 
-    const SPRING = (() => {
-      if (
-        typeof window.CSS === 'undefined' ||
-        typeof CSS.supports !== 'function' ||
-        !CSS.supports('animation-timing-function', 'linear(0, 1)')
-      ) {
-        return 'cubic-bezier(.34, 1.56, .64, 1)';
-      }
-      const N = 56;
-      const pts: number[] = [];
-      for (let i = 0; i <= N; i++) {
-        const t = i / N;
-        pts.push(i === N ? 1 : +(1 - Math.exp(-6.5 * t) * Math.cos(9.5 * t)).toFixed(4));
-      }
-      return `linear(${pts.join(', ')})`;
-    })();
-    const SOFT = 'cubic-bezier(.22, 1, .36, 1)';
+    const EASE_OUT = 'cubic-bezier(.22, 1, .36, 1)';
+    const isMobile = window.innerWidth <= 900;
 
     const reveal = (el: HTMLElement, delay: number) => {
-      el.style.setProperty('--d', `${delay}ms`);
+      const cappedDelay = isMobile ? Math.min(delay, 120) : delay;
+      el.style.setProperty('--d', `${cappedDelay}ms`);
       el.classList.add('is-in');
       if (typeof el.animate !== 'function') return;
 
       if (!motionOK()) {
         el.animate([{ opacity: 0 }, { opacity: 1 }], {
-          duration: 600,
-          delay,
+          duration: 300,
+          delay: cappedDelay,
           easing: 'ease-out',
           fill: 'backwards',
         });
         return;
       }
 
-      let from = 'translateY(80px) scale(.93)';
-      let dur = 1200;
-      let ease = SPRING;
-      if (el.matches('.section-head, .faq-intro, .contact-intro')) {
-        from = 'translateY(36px)';
-        dur = 950;
-        ease = SOFT;
-      } else if (el.getAttribute('data-reveal') === 'in') {
-        from = 'translateY(46px) scale(.9)';
-        dur = 1250;
-      }
+      const offset = isMobile ? 14 : 24;
+      const dur = isMobile ? 360 : 520;
 
       el.animate(
         [
-          { opacity: 0, transform: from, filter: 'blur(10px)' },
-          { opacity: 1, filter: 'blur(0px)', offset: 0.3 },
-          { opacity: 1, transform: 'none', filter: 'blur(0px)' },
+          { opacity: 0, transform: `translate3d(0, ${offset}px, 0)` },
+          { opacity: 1, transform: 'translate3d(0, 0, 0)' },
         ],
-        { duration: dur, delay, easing: ease, fill: 'backwards' }
+        { duration: dur, delay: cappedDelay, easing: EASE_OUT, fill: 'backwards' }
       );
     };
 
@@ -1044,7 +1020,6 @@ export default function LandingEffects() {
       ro?.disconnect();
       if (shimmerTimer) clearTimeout(shimmerTimer);
       if (menuCloseTimer) clearTimeout(menuCloseTimer);
-      if (themeTimer) clearTimeout(themeTimer);
       if (scrollTimer) clearTimeout(scrollTimer);
       if (scrollRafId) cancelAnimationFrame(scrollRafId);
       topBtn.remove();
