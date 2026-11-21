@@ -25,6 +25,7 @@ import { buatInsight } from '@/lib/domain/insight';
 import { formatRupiah, getNamaBulan, getTodayISO, formatTanggal } from '@/lib/format';
 import { CategoryIconChip } from '@/components/ui/CategoryIcon';
 import { AnimatedRupiah, SevenDayChart, MonthlyTrendChart } from '@/components/app/DashboardCharts';
+import { DashboardGreeting } from '@/components/app/DashboardGreeting';
 import type { ProfilTipe } from '@/lib/types/database';
 
 export default async function DashboardPage({
@@ -48,7 +49,6 @@ export default async function DashboardPage({
   if (!akun) redirect('/masuk');
   if (akun.peran === 'admin') redirect('/admin');
 
-  // Sinkronkan pengingat tagihan (idempoten lewat kunci_unik)
   await sinkronkanNotifikasiTagihan();
 
   const resolvedParams = await searchParams;
@@ -120,7 +120,6 @@ export default async function DashboardPage({
   const total7Hari = data7Hari.reduce((s, d) => s + d.total, 0);
   const tren6Bulan = hitungTrenBulanan(allTrx, bulan, tahun, 6);
 
-  // Anggaran bulan ini
   const anggaranItems = (anggaranList || []).map((a) => {
     const kat = katMap.get(a.id_kategori);
     const trxKat = trxBulanIni.filter((t) => t.id_kategori === a.id_kategori);
@@ -137,7 +136,6 @@ export default async function DashboardPage({
   const totalBatasAnggaran = anggaranItems.reduce((s, a) => s + a.batas, 0);
   const totalTerpakaiAnggaran = anggaranItems.reduce((s, a) => s + a.terpakai, 0);
 
-  // Target tabungan utama
   const primaryTarget = (targetList || [])[0] || null;
   const primaryProgres = primaryTarget
     ? hitungProgresTabungan(
@@ -146,7 +144,6 @@ export default async function DashboardPage({
       )
     : null;
 
-  // Tagihan terdekat
   const tagihanItems = (tagihanList || []).map((t) => {
     const selisihHari = differenceInCalendarDays(parseISO(t.tanggal_jatuh_tempo), parseISO(todayISO));
     return { ...t, selisihHari };
@@ -182,19 +179,11 @@ export default async function DashboardPage({
 
   return (
     <div className="flex flex-col gap-5">
-      {/* Sapaan singkat */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
-        <div>
-          <h1 className="fn-display text-2xl sm:text-3xl font-semibold">
-            Halo, {akun.nama || 'Teman Finara'}
-          </h1>
-          <p className="text-sm mt-0.5" style={{ color: 'var(--muted)' }}>
-            Ringkasan keuangan {getNamaBulan(bulan)} {tahun}
-          </p>
-        </div>
-      </div>
+      <DashboardGreeting
+        nama={akun.nama || 'Teman Finara'}
+        subtitle={`Ringkasan keuangan ${getNamaBulan(bulan)} ${tahun}`}
+      />
 
-      {/* Empty state saat belum ada transaksi bulan ini */}
       {isEmpty && (
         <div
           className="fn-card p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
@@ -215,9 +204,7 @@ export default async function DashboardPage({
         </div>
       )}
 
-      {/* Bento Grid 6 Kolom (E.3) */}
       <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-        {/* 1. Kartu Saldo Utama (span 3) */}
         <section aria-labelledby="card-saldo-title" className="fn-card p-5 sm:p-6 md:col-span-3 flex flex-col justify-between gap-5">
           <div>
             <p id="card-saldo-title" className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
@@ -251,7 +238,6 @@ export default async function DashboardPage({
           </div>
         </section>
 
-        {/* 2. Grafik Pengeluaran 7 Hari (span 3) */}
         <section aria-labelledby="card-7hari-title" className="fn-card p-5 sm:p-6 md:col-span-3 flex flex-col justify-between gap-3">
           <div className="flex items-baseline justify-between gap-2">
             <div>
@@ -268,7 +254,6 @@ export default async function DashboardPage({
           <SevenDayChart data={data7Hari} />
         </section>
 
-        {/* 3. Pengeluaran per Kategori (span 3) */}
         <section aria-labelledby="card-kat-title" className="fn-card p-5 sm:p-6 md:col-span-3 flex flex-col justify-between gap-4">
           <div className="flex items-center justify-between">
             <h2 id="card-kat-title" className="fn-display text-base font-semibold">
@@ -311,7 +296,6 @@ export default async function DashboardPage({
           )}
         </section>
 
-        {/* 4. Anggaran Bulan Ini (span 3) */}
         <section aria-labelledby="card-ang-title" className="fn-card p-5 sm:p-6 md:col-span-3 flex flex-col justify-between gap-4">
           <div className="flex items-center justify-between">
             <h2 id="card-ang-title" className="fn-display text-base font-semibold">
@@ -365,7 +349,6 @@ export default async function DashboardPage({
           )}
         </section>
 
-        {/* 5. Kartu Insight Otomatis (span 2) */}
         <section
           aria-labelledby="card-insight-title"
           className="fn-card p-5 sm:p-6 md:col-span-2 flex flex-col justify-between gap-4"
@@ -391,7 +374,6 @@ export default async function DashboardPage({
           </Link>
         </section>
 
-        {/* 6. Kartu Target Tabungan (span 2) */}
         <section aria-labelledby="card-tabungan-title" className="fn-card p-5 sm:p-6 md:col-span-2 flex flex-col justify-between gap-4">
           <div className="flex items-center justify-between">
             <h2 id="card-tabungan-title" className="fn-display text-base font-semibold">
@@ -437,7 +419,6 @@ export default async function DashboardPage({
           )}
         </section>
 
-        {/* 7. Kartu Tagihan Terdekat (span 2) */}
         <section aria-labelledby="card-tagihan-title" className="fn-card p-5 sm:p-6 md:col-span-2 flex flex-col justify-between gap-4">
           <div className="flex items-center justify-between">
             <h2 id="card-tagihan-title" className="fn-display text-base font-semibold">
@@ -489,7 +470,6 @@ export default async function DashboardPage({
           )}
         </section>
 
-        {/* 8. Tren 6 Bulan Terakhir (span 6) */}
         <section aria-labelledby="card-tren-title" className="fn-card p-5 sm:p-6 md:col-span-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-3">
             <div>
