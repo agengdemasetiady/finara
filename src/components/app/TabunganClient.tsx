@@ -29,14 +29,13 @@ export function TabunganClient({ targets }: { targets: TargetTabunganView[] }) {
   const [tenggat, setTenggat] = useState('');
   const [creating, setCreating] = useState(false);
 
-  // Modal + Setoran
   const [depositTarget, setDepositTarget] = useState<TargetTabunganView | null>(null);
   const [depositDigits, setDepositDigits] = useState('');
   const [depositDate, setDepositDate] = useState(getTodayISO());
   const [depositing, setDepositing] = useState(false);
 
-  // Drawer riwayat setoran
   const [historyTarget, setHistoryTarget] = useState<TargetTabunganView | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -98,6 +97,7 @@ export function TabunganClient({ targets }: { targets: TargetTabunganView[] }) {
 
   async function handleDelete(id: string) {
     const res = await hapusTargetTabungan(id);
+    setDeletingId(null);
     if (!res.ok) {
       showToast(res.message, 'error');
       return;
@@ -167,15 +167,15 @@ export function TabunganClient({ targets }: { targets: TargetTabunganView[] }) {
           {targets.map((t) => (
             <article key={t.id} className="fn-card p-5 flex flex-col justify-between gap-4">
               <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 min-w-0">
                   <span
                     className="w-11 h-11 rounded-2xl inline-flex items-center justify-center shrink-0"
                     style={{ backgroundColor: 'var(--primary-soft)', color: 'var(--primary)' }}
                   >
                     <PiggyBank size={24} weight="duotone" />
                   </span>
-                  <div>
-                    <h2 className="fn-display text-lg font-semibold">{t.nama}</h2>
+                  <div className="min-w-0">
+                    <h2 className="fn-display text-lg font-semibold truncate">{t.nama}</h2>
                     {t.tanggal && (
                       <p className="text-xs" style={{ color: 'var(--muted)' }}>
                         Tenggat {formatTanggal(t.tanggal)}
@@ -184,15 +184,36 @@ export function TabunganClient({ targets }: { targets: TargetTabunganView[] }) {
                   </div>
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => handleDelete(t.id)}
-                  aria-label={`Hapus target ${t.nama}`}
-                  className="p-2 rounded-xl border hover:opacity-80 cursor-pointer"
-                  style={{ borderColor: 'var(--border)', color: 'var(--danger)' }}
-                >
-                  <Trash size={16} />
-                </button>
+                {deletingId === t.id ? (
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(t.id)}
+                      className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white cursor-pointer"
+                      style={{ backgroundColor: 'var(--danger)' }}
+                    >
+                      Hapus
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDeletingId(null)}
+                      className="px-2 py-1.5 rounded-lg text-xs font-semibold border cursor-pointer"
+                      style={{ borderColor: 'var(--border)' }}
+                    >
+                      Batal
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setDeletingId(t.id)}
+                    aria-label={`Hapus target ${t.nama}`}
+                    className="p-2 rounded-xl border hover:opacity-80 cursor-pointer shrink-0"
+                    style={{ borderColor: 'var(--border)', color: 'var(--danger)' }}
+                  >
+                    <Trash size={16} />
+                  </button>
+                )}
               </div>
 
               <div>
@@ -222,6 +243,9 @@ export function TabunganClient({ targets }: { targets: TargetTabunganView[] }) {
                 <button
                   type="button"
                   onClick={() => {
+                    if (document.activeElement instanceof HTMLElement) {
+                      document.activeElement.blur();
+                    }
                     setDepositTarget(t);
                     setDepositDigits('');
                     setDepositDate(getTodayISO());
@@ -266,7 +290,7 @@ export function TabunganClient({ targets }: { targets: TargetTabunganView[] }) {
               <button
                 type="button"
                 onClick={() => setDepositTarget(null)}
-                className="w-8 h-8 rounded-full inline-flex items-center justify-center"
+                className="w-8 h-8 rounded-full inline-flex items-center justify-center cursor-pointer"
                 style={{ backgroundColor: 'var(--bg)' }}
               >
                 <X size={16} />
@@ -279,7 +303,6 @@ export function TabunganClient({ targets }: { targets: TargetTabunganView[] }) {
                 <input
                   type="text"
                   inputMode="numeric"
-                  autoFocus
                   value={depositDigits ? formatAngka(depositDigits) : ''}
                   onChange={(e) => setDepositDigits(e.target.value.replace(/\D/g, '').slice(0, 12))}
                   placeholder="Contoh: 50.000"
@@ -325,7 +348,7 @@ export function TabunganClient({ targets }: { targets: TargetTabunganView[] }) {
               <button
                 type="button"
                 onClick={() => setHistoryTarget(null)}
-                className="w-8 h-8 rounded-full inline-flex items-center justify-center"
+                className="w-8 h-8 rounded-full inline-flex items-center justify-center cursor-pointer"
                 style={{ backgroundColor: 'var(--bg)' }}
               >
                 <X size={16} />

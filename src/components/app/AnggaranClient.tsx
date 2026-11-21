@@ -36,6 +36,7 @@ export function AnggaranClient({
   const [selectedKat, setSelectedKat] = useState(expenseCategories[0]?.id || '');
   const [batasDigits, setBatasDigits] = useState('');
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -69,6 +70,7 @@ export function AnggaranClient({
 
   async function handleDelete(id: string) {
     const res = await hapusAnggaran(id);
+    setDeletingId(null);
     if (!res.ok) {
       showToast(res.message, 'error');
       return;
@@ -140,25 +142,46 @@ export function AnggaranClient({
             return (
               <article key={item.id} className="fn-card p-5 flex flex-col gap-3.5">
                 <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
                     <CategoryIconChip ikon={item.ikon} warna={item.warna} size={40} />
-                    <div>
-                      <h2 className="fn-display text-base font-semibold">{item.nama}</h2>
+                    <div className="min-w-0">
+                      <h2 className="fn-display text-base font-semibold truncate">{item.nama}</h2>
                       <p className="text-xs fn-num" style={{ color: 'var(--muted)' }}>
                         Terpakai {formatRupiah(item.terpakai)} dari {formatRupiah(item.batas)}
                       </p>
                     </div>
                   </div>
 
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(item.id)}
-                    aria-label={`Hapus anggaran ${item.nama}`}
-                    className="p-2 rounded-xl border hover:opacity-80 cursor-pointer"
-                    style={{ borderColor: 'var(--border)', color: 'var(--danger)' }}
-                  >
-                    <Trash size={16} />
-                  </button>
+                  {deletingId === item.id ? (
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(item.id)}
+                        className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white cursor-pointer"
+                        style={{ backgroundColor: 'var(--danger)' }}
+                      >
+                        Hapus
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeletingId(null)}
+                        className="px-2 py-1.5 rounded-lg text-xs font-semibold border cursor-pointer"
+                        style={{ borderColor: 'var(--border)' }}
+                      >
+                        Batal
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setDeletingId(item.id)}
+                      aria-label={`Hapus anggaran ${item.nama}`}
+                      className="p-2 rounded-xl border hover:opacity-80 cursor-pointer shrink-0"
+                      style={{ borderColor: 'var(--border)', color: 'var(--danger)' }}
+                    >
+                      <Trash size={16} />
+                    </button>
+                  )}
                 </div>
 
                 <div>
