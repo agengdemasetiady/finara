@@ -18,6 +18,22 @@ const PROTECTED_ROUTES = [
 
 const AUTH_ROUTES = ['/masuk', '/daftar', '/lupa-sandi'];
 
+function applySecurityHeaders(response: NextResponse, isProtected: boolean) {
+  response.headers.set('X-Frame-Options', 'DENY');
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+
+  if (isProtected) {
+    response.headers.set(
+      'Cache-Control',
+      'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0'
+    );
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
+  }
+}
+
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
     request,
@@ -59,14 +75,19 @@ export async function updateSession(request: NextRequest) {
   if (!user && isProtected) {
     const url = request.nextUrl.clone();
     url.pathname = '/masuk';
-    return NextResponse.redirect(url);
+    const redirectRes = NextResponse.redirect(url);
+    applySecurityHeaders(redirectRes, true);
+    return redirectRes;
   }
 
   if (user && isAuthRoute && !request.nextUrl.searchParams.has('error')) {
     const url = request.nextUrl.clone();
     url.pathname = '/dashboard';
-    return NextResponse.redirect(url);
+    const redirectRes = NextResponse.redirect(url);
+    applySecurityHeaders(redirectRes, false);
+    return redirectRes;
   }
 
+  applySecurityHeaders(supabaseResponse, isProtected);
   return supabaseResponse;
 }
