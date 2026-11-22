@@ -92,8 +92,6 @@ const PAGE_TITLES: Record<string, string> = {
   '/admin/kategori': 'Kategori Bawaan',
 };
 
-const MIN_SKELETON_MS = 180;
-
 function getInisial(nama: string): string {
   const parts = nama.trim().split(/\s+/);
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
@@ -117,13 +115,10 @@ export default function AppShell({
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [notifPopupOpen, setNotifPopupOpen] = useState(false);
   const [pendingPath, setPendingPath] = useState<string | null>(null);
-  const [showMicroSkeleton, setShowMicroSkeleton] = useState(false);
   const [localNotifs, setLocalNotifs] = useState<Notifikasi[]>(notifications);
 
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const notifPopupRef = useRef<HTMLDivElement>(null);
-  const navStartRef = useRef<number>(0);
-  const skeletonTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const routes = isAdmin
@@ -180,22 +175,6 @@ export default function AppShell({
     setPendingPath(null);
     setProfileMenuOpen(false);
     setNotifPopupOpen(false);
-
-    if (navStartRef.current > 0) {
-      const elapsed = Date.now() - navStartRef.current;
-      const remaining = Math.max(0, MIN_SKELETON_MS - elapsed);
-      if (skeletonTimerRef.current) clearTimeout(skeletonTimerRef.current);
-      skeletonTimerRef.current = setTimeout(() => {
-        setShowMicroSkeleton(false);
-        navStartRef.current = 0;
-      }, remaining);
-    } else {
-      setShowMicroSkeleton(false);
-    }
-
-    return () => {
-      if (skeletonTimerRef.current) clearTimeout(skeletonTimerRef.current);
-    };
   }, [pathname]);
 
   const handleLogoutCleanup = useCallback(() => {
@@ -261,9 +240,7 @@ export default function AppShell({
 
   function startNav(href: string) {
     if (href in PAGE_TITLES && href !== pathname) {
-      navStartRef.current = Date.now();
       setPendingPath(href);
-      setShowMicroSkeleton(true);
     }
   }
 
@@ -328,24 +305,6 @@ export default function AppShell({
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row max-w-full overflow-x-hidden">
-      <style>{`
-        @keyframes fnShimmerSweep {
-          0% { transform: translate3d(-100%, 0, 0); }
-          100% { transform: translate3d(100%, 0, 0); }
-        }
-        .fn-shimmer {
-          position: relative;
-          overflow: hidden;
-        }
-        .fn-shimmer::after {
-          content: "";
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.24), transparent);
-          animation: fnShimmerSweep 1.1s ease-in-out infinite;
-        }
-      `}</style>
-
       {/* Desktop Sidebar */}
       <aside
         aria-label="Navigasi aplikasi"
@@ -728,40 +687,9 @@ export default function AppShell({
           </div>
         </header>
 
-        {/* Page Body dengan Micro-Skeleton Instan */}
+        {/* Page Body */}
         <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-          {showMicroSkeleton ? (
-            <div className="flex flex-col gap-4" aria-busy="true" aria-label="Memuat halaman">
-              <div className="flex items-center justify-between gap-3">
-                <div className="space-y-2">
-                  <div className="h-7 w-40 rounded-xl fn-shimmer" style={{ backgroundColor: 'var(--border)' }} />
-                  <div className="h-3.5 w-56 rounded-lg fn-shimmer" style={{ backgroundColor: 'var(--border)' }} />
-                </div>
-                <div className="h-9 w-24 rounded-full fn-shimmer" style={{ backgroundColor: 'var(--border)' }} />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-                <div
-                  className="h-36 rounded-3xl border md:col-span-3 fn-shimmer"
-                  style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
-                />
-                <div
-                  className="h-36 rounded-3xl border md:col-span-3 fn-shimmer"
-                  style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
-                />
-                <div
-                  className="h-52 rounded-3xl border md:col-span-4 fn-shimmer"
-                  style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
-                />
-                <div
-                  className="h-52 rounded-3xl border md:col-span-2 fn-shimmer"
-                  style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
-                />
-              </div>
-            </div>
-          ) : (
-            <div className="fn-page-enter">{children}</div>
-          )}
+          <div className="fn-page-enter">{children}</div>
         </main>
       </div>
 
