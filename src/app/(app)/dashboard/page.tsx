@@ -2,8 +2,6 @@ import React from 'react';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import {
-  ArrowUpRight,
-  ArrowDownRight,
   Lightbulb,
   Plus,
   Receipt,
@@ -24,8 +22,9 @@ import { hitungProgresTabungan } from '@/lib/domain/tabungan';
 import { buatInsight } from '@/lib/domain/insight';
 import { formatRupiah, getNamaBulan, getTodayISO, formatTanggal } from '@/lib/format';
 import { CategoryIconChip } from '@/components/ui/CategoryIcon';
-import { AnimatedRupiah, SevenDayChart, MonthlyTrendChart } from '@/components/app/DashboardCharts';
+import { SevenDayChart, MonthlyTrendChart } from '@/components/app/DashboardCharts';
 import { DashboardGreeting } from '@/components/app/DashboardGreeting';
+import { DashboardSaldoCard } from '@/components/app/DashboardSaldoCard';
 import type { ProfilTipe } from '@/lib/types/database';
 
 export default async function DashboardPage({
@@ -205,38 +204,14 @@ export default async function DashboardPage({
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-        <section aria-labelledby="card-saldo-title" className="fn-card p-5 sm:p-6 md:col-span-3 flex flex-col justify-between gap-5">
-          <div>
-            <p id="card-saldo-title" className="text-xs font-semibold uppercase tracking-wide" style={{ color: 'var(--muted)' }}>
-              {ringkasan.labelSaldo}
-            </p>
-            <p className="fn-display text-3xl sm:text-4xl font-bold mt-2 fn-num">
-              <AnimatedRupiah value={ringkasan.saldo} />
-            </p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-2xl p-3.5" style={{ backgroundColor: 'var(--bg)' }}>
-              <div className="flex items-center gap-1.5 text-xs font-medium" style={{ color: 'var(--muted)' }}>
-                <ArrowDownRight size={16} weight="bold" style={{ color: 'var(--primary)' }} />
-                <span>Pemasukan</span>
-              </div>
-              <p className="text-base sm:text-lg font-semibold mt-1 fn-num">
-                {formatRupiah(ringkasan.pemasukan)}
-              </p>
-            </div>
-
-            <div className="rounded-2xl p-3.5" style={{ backgroundColor: 'var(--bg)' }}>
-              <div className="flex items-center gap-1.5 text-xs font-medium" style={{ color: 'var(--muted)' }}>
-                <ArrowUpRight size={16} weight="bold" style={{ color: 'var(--accent-strong)' }} />
-                <span>Pengeluaran</span>
-              </div>
-              <p className="text-base sm:text-lg font-semibold mt-1 fn-num">
-                {formatRupiah(ringkasan.pengeluaran)}
-              </p>
-            </div>
-          </div>
-        </section>
+        <DashboardSaldoCard
+          labelSaldo={ringkasan.labelSaldo}
+          saldo={ringkasan.saldo}
+          pemasukan={ringkasan.pemasukan}
+          pengeluaran={ringkasan.pengeluaran}
+          bulan={bulan}
+          tahun={tahun}
+        />
 
         <section aria-labelledby="card-7hari-title" className="fn-card p-5 sm:p-6 md:col-span-3 flex flex-col justify-between gap-3">
           <div className="flex items-baseline justify-between gap-2">
