@@ -70,6 +70,13 @@ export function DashboardSaldoCard({
 }: DashboardSaldoCardProps) {
   const [hidden, setHidden] = useState(false);
   const [pendingItems, setPendingItems] = useState<PendingDeltaItem[]>([]);
+  const serverKey = `${saldo}-${pemasukan}-${pengeluaran}`;
+  const [prevServerKey, setPrevServerKey] = useState(serverKey);
+
+  if (serverKey !== prevServerKey) {
+    setPrevServerKey(serverKey);
+    setPendingItems((prev) => prev.filter((item) => !item.confirmed));
+  }
 
   useEffect(() => {
     try {
@@ -77,7 +84,6 @@ export function DashboardSaldoCard({
         setHidden(true);
       }
     } catch {
-      // Abaikan jika storage dibatasi
     }
   }, []);
 
@@ -116,9 +122,6 @@ export function DashboardSaldoCard({
       setPendingItems((prev) =>
         prev.map((item) => (item.id === id ? { ...item, confirmed: true } : item))
       );
-      setTimeout(() => {
-        setPendingItems((prev) => prev.filter((item) => item.id !== id));
-      }, 2500);
     }
 
     function onRollback(e: Event) {
