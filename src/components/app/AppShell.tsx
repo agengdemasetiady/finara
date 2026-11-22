@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect, useState, useRef, Suspense } from 'react';
+import React, { useEffect, useState, useRef, useCallback, Suspense } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   House,
   ListBullets,
@@ -66,6 +66,16 @@ const ADMIN_NAV = [
   { href: '/admin/kategori', label: 'Kategori Bawaan', icon: Tag },
 ];
 
+const MORE_NAV = [
+  { href: '/tabungan', label: 'Tabungan', icon: PiggyBank },
+  { href: '/tagihan', label: 'Tagihan', icon: Receipt },
+  { href: '/insight', label: 'Insight', icon: Lightbulb },
+  { href: '/laporan', label: 'Laporan', icon: FileArrowDown },
+  { href: '/kategori', label: 'Kategori', icon: Tag },
+  { href: '/notifikasi', label: 'Notifikasi', icon: Bell },
+  { href: '/pengaturan', label: 'Pengaturan', icon: GearSix },
+];
+
 const PAGE_TITLES: Record<string, string> = {
   '/dashboard': 'Dashboard',
   '/transaksi': 'Transaksi',
@@ -82,6 +92,8 @@ const PAGE_TITLES: Record<string, string> = {
   '/admin/kategori': 'Kategori Bawaan',
 };
 
+const MIN_SKELETON_MS = 180;
+
 function getInisial(nama: string): string {
   const parts = nama.trim().split(/\s+/);
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
@@ -96,6 +108,7 @@ export default function AppShell({
   children,
 }: AppShellProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const isAdmin = akun.peran === 'admin';
   const navItems = isAdmin ? ADMIN_NAV : USER_NAV;
 
@@ -104,10 +117,33 @@ export default function AppShell({
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [notifPopupOpen, setNotifPopupOpen] = useState(false);
   const [pendingPath, setPendingPath] = useState<string | null>(null);
+  const [showMicroSkeleton, setShowMicroSkeleton] = useState(false);
   const [localNotifs, setLocalNotifs] = useState<Notifikasi[]>(notifications);
 
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const notifPopupRef = useRef<HTMLDivElement>(null);
+  const navStartRef = useRef<number>(0);
+  const skeletonTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    const routes = isAdmin
+      ? ['/admin', '/admin/pengguna', '/admin/kategori']
+      : [
+          '/dashboard',
+          '/transaksi',
+          '/anggaran',
+          '/tabungan',
+          '/tagihan',
+          '/insight',
+          '/laporan',
+          '/kategori',
+          '/notifikasi',
+          '/pengaturan',
+        ];
+    for (const route of routes) {
+      router.prefetch(route);
+    }
+  }, [isAdmin, router]);
 
   useEffect(() => {
     setLocalNotifs(notifications);
@@ -128,6 +164,7 @@ export default function AppShell({
 
     window.addEventListener('finara:notif-read', onNotifRead);
     window.addEventListener('finara:notif-read-all', onNotifReadAll);
+
     return () => {
       window.removeEventListener('finara:notif-read', onNotifRead);
       window.removeEventListener('finara:notif-read-all', onNotifReadAll);
@@ -143,7 +180,67 @@ export default function AppShell({
     setPendingPath(null);
     setProfileMenuOpen(false);
     setNotifPopupOpen(false);
+
+    if (navStartRef.current > 0) {
+      const elapsed = Date.now() - navStartRef.current;
+      const remaining = Math.max(0, MIN_SKELETON_MS - elapsed);
+      if (skeletonTimerRef.current) clearTimeout(skeletonTimerRef.current);
+      skeletonTimerRef.current = setTimeout(() => {
+        setShowMicroSkeleton(false);
+        navStartRef.current = 0;
+      }, remaining);
+    } else {
+      setShowMicroSkeleton(false);
+    }
+
+    return () => {
+      if (skeletonTimerRef.current) clearTimeout(skeletonTimerRef.current);
+    };
   }, [pathname]);
+
+  const handleLogoutCleanup = useCallback(() => {
+    setLocalNotifs([]);
+    window.dispatchEvent(new CustomEvent('finara:clear-cache'));
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        const bc = new BroadcastChannel('finara-auth');
+        bc.postMessage({ type: 'LOGOUT' });
+        bc.close();
+      }
+      localStorage.setItem('finara-logout-sync', String(Date.now()));
+    } catch {
+      // Abaikan jika storage diblokir
+    }
+  }, []);
+
+  // Sinkronisasi Keluar lintas tab saat tombol Keluar ditekan manual
+  useEffect(() => {
+    let bc: BroadcastChannel | null = null;
+    if (typeof BroadcastChannel !== 'undefined') {
+      bc = new BroadcastChannel('finara-auth');
+      bc.onmessage = (event) => {
+        if (event.data?.type === 'LOGOUT') {
+          setLocalNotifs([]);
+          window.dispatchEvent(new CustomEvent('finara:clear-cache'));
+          router.replace('/masuk');
+        }
+      };
+    }
+
+    const onStorageSync = (e: StorageEvent) => {
+      if (e.key === 'finara-logout-sync' && e.newValue) {
+        setLocalNotifs([]);
+        window.dispatchEvent(new CustomEvent('finara:clear-cache'));
+        router.replace('/masuk');
+      }
+    };
+    window.addEventListener('storage', onStorageSync);
+
+    return () => {
+      bc?.close();
+      window.removeEventListener('storage', onStorageSync);
+    };
+  }, [router]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -161,6 +258,14 @@ export default function AppShell({
   }, [profileMenuOpen, notifPopupOpen]);
 
   const currentPath = pendingPath || pathname;
+
+  function startNav(href: string) {
+    if (href in PAGE_TITLES && href !== pathname) {
+      navStartRef.current = Date.now();
+      setPendingPath(href);
+      setShowMicroSkeleton(true);
+    }
+  }
 
   useEffect(() => {
     if (isAdmin) return;
@@ -190,8 +295,8 @@ export default function AppShell({
   const labelSubProfil = isAdmin
     ? 'Administrator'
     : akun.profil
-    ? getLabelProfil(akun.profil)
-    : 'Pengguna';
+      ? getLabelProfil(akun.profil)
+      : 'Pengguna';
 
   function handleReadSingleNotif(notif: Notifikasi) {
     if (notif.sudah_dibaca) return;
@@ -223,6 +328,24 @@ export default function AppShell({
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row max-w-full overflow-x-hidden">
+      <style>{`
+        @keyframes fnShimmerSweep {
+          0% { transform: translate3d(-100%, 0, 0); }
+          100% { transform: translate3d(100%, 0, 0); }
+        }
+        .fn-shimmer {
+          position: relative;
+          overflow: hidden;
+        }
+        .fn-shimmer::after {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.24), transparent);
+          animation: fnShimmerSweep 1.1s ease-in-out infinite;
+        }
+      `}</style>
+
       {/* Desktop Sidebar */}
       <aside
         aria-label="Navigasi aplikasi"
@@ -235,7 +358,8 @@ export default function AppShell({
         <div className="p-3.5 flex flex-col gap-4 overflow-y-auto overflow-x-hidden flex-1">
           <Link
             href={isAdmin ? '/admin' : '/dashboard'}
-            onClick={() => setPendingPath(isAdmin ? '/admin' : '/dashboard')}
+            prefetch={true}
+            onClick={() => startNav(isAdmin ? '/admin' : '/dashboard')}
             className={`fn-display text-2xl font-bold py-1 inline-flex items-baseline whitespace-nowrap transition-all duration-300 ${
               profileMenuOpen
                 ? 'px-3'
@@ -263,7 +387,9 @@ export default function AppShell({
                 <Link
                   key={item.href}
                   href={item.href}
-                  onClick={() => setPendingPath(item.href)}
+                  prefetch={true}
+                  onMouseEnter={() => router.prefetch(item.href)}
+                  onClick={() => startNav(item.href)}
                   className="flex items-center gap-3.5 px-3 py-2 rounded-xl font-medium text-sm whitespace-nowrap transition-all active:scale-95"
                   style={{
                     backgroundColor: active ? 'var(--primary-soft)' : 'transparent',
@@ -291,7 +417,9 @@ export default function AppShell({
 
                 <Link
                   href="/notifikasi"
-                  onClick={() => setPendingPath('/notifikasi')}
+                  prefetch={true}
+                  onMouseEnter={() => router.prefetch('/notifikasi')}
+                  onClick={() => startNav('/notifikasi')}
                   className="relative flex items-center gap-3.5 px-3 py-2 rounded-xl text-sm font-medium whitespace-nowrap active:scale-95 transition-transform"
                   style={{
                     backgroundColor: currentPath === '/notifikasi' ? 'var(--primary-soft)' : 'transparent',
@@ -352,8 +480,9 @@ export default function AppShell({
               {!isAdmin && (
                 <Link
                   href="/pengaturan"
+                  prefetch={true}
                   onClick={() => {
-                    setPendingPath('/pengaturan');
+                    startNav('/pengaturan');
                     setProfileMenuOpen(false);
                   }}
                   className="flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium hover:opacity-80 transition-opacity"
@@ -373,7 +502,7 @@ export default function AppShell({
 
               <div className="border-t my-0.5" style={{ borderColor: 'var(--border)' }} />
 
-              <form action={keluarAkun}>
+              <form action={keluarAkun} onSubmit={handleLogoutCleanup}>
                 <button
                   type="submit"
                   className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold cursor-pointer hover:opacity-80 transition-opacity"
@@ -432,7 +561,8 @@ export default function AppShell({
           <div className="flex items-center gap-2 shrink-0">
             <Link
               href={isAdmin ? '/admin' : '/dashboard'}
-              onClick={() => setPendingPath(isAdmin ? '/admin' : '/dashboard')}
+              prefetch={true}
+              onClick={() => startNav(isAdmin ? '/admin' : '/dashboard')}
               className="md:hidden fn-display text-xl font-bold inline-flex items-baseline"
             >
               finara<span style={{ color: 'var(--accent)' }}>.</span>
@@ -457,7 +587,6 @@ export default function AppShell({
 
             {!isAdmin && (
               <>
-                {/* Tombol Popup Notifikasi (Mobile & Desktop) */}
                 <div ref={notifPopupRef} className="relative">
                   <button
                     type="button"
@@ -482,7 +611,6 @@ export default function AppShell({
                     )}
                   </button>
 
-                  {/* Popover Desktop */}
                   {notifPopupOpen && (
                     <div
                       className="hidden sm:flex flex-col absolute right-0 top-[calc(100%+10px)] w-96 rounded-3xl border shadow-2xl z-50 overflow-hidden"
@@ -569,9 +697,10 @@ export default function AppShell({
                       >
                         <Link
                           href="/notifikasi"
+                          prefetch={true}
                           onClick={() => {
                             setNotifPopupOpen(false);
-                            setPendingPath('/notifikasi');
+                            startNav('/notifikasi');
                           }}
                           className="text-xs font-semibold hover:underline"
                           style={{ color: 'var(--primary)' }}
@@ -599,36 +728,39 @@ export default function AppShell({
           </div>
         </header>
 
-        {/* Page Body */}
+        {/* Page Body dengan Micro-Skeleton Instan */}
         <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-          {pendingPath && pendingPath !== pathname ? (
-            <div className="flex flex-col gap-5 animate-pulse">
-              <div className="space-y-2">
-                <div className="h-8 w-44 rounded-xl" style={{ backgroundColor: 'var(--border)' }} />
-                <div className="h-4 w-60 rounded-lg" style={{ backgroundColor: 'var(--border)' }} />
+          {showMicroSkeleton ? (
+            <div className="flex flex-col gap-4" aria-busy="true" aria-label="Memuat halaman">
+              <div className="flex items-center justify-between gap-3">
+                <div className="space-y-2">
+                  <div className="h-7 w-40 rounded-xl fn-shimmer" style={{ backgroundColor: 'var(--border)' }} />
+                  <div className="h-3.5 w-56 rounded-lg fn-shimmer" style={{ backgroundColor: 'var(--border)' }} />
+                </div>
+                <div className="h-9 w-24 rounded-full fn-shimmer" style={{ backgroundColor: 'var(--border)' }} />
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
                 <div
-                  className="h-44 rounded-3xl border md:col-span-3"
+                  className="h-36 rounded-3xl border md:col-span-3 fn-shimmer"
                   style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
                 />
                 <div
-                  className="h-44 rounded-3xl border md:col-span-3"
+                  className="h-36 rounded-3xl border md:col-span-3 fn-shimmer"
                   style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
                 />
                 <div
-                  className="h-60 rounded-3xl border md:col-span-4"
+                  className="h-52 rounded-3xl border md:col-span-4 fn-shimmer"
                   style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
                 />
                 <div
-                  className="h-60 rounded-3xl border md:col-span-2"
+                  className="h-52 rounded-3xl border md:col-span-2 fn-shimmer"
                   style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
                 />
               </div>
             </div>
           ) : (
-            children
+            <div className="fn-page-enter">{children}</div>
           )}
         </main>
       </div>
@@ -735,9 +867,10 @@ export default function AppShell({
             >
               <Link
                 href="/notifikasi"
+                prefetch={true}
                 onClick={() => {
                   setNotifPopupOpen(false);
-                  setPendingPath('/notifikasi');
+                  startNav('/notifikasi');
                 }}
                 className="text-xs font-semibold hover:underline"
                 style={{ color: 'var(--primary)' }}
@@ -758,7 +891,9 @@ export default function AppShell({
         >
           <Link
             href="/dashboard"
-            onClick={() => setPendingPath('/dashboard')}
+            prefetch={true}
+            onTouchStart={() => router.prefetch('/dashboard')}
+            onClick={() => startNav('/dashboard')}
             className="flex flex-col items-center gap-0.5 py-1 text-[11px] font-medium active:scale-95 transition-transform"
             style={{ color: currentPath === '/dashboard' ? 'var(--primary)' : 'var(--muted)' }}
           >
@@ -768,7 +903,9 @@ export default function AppShell({
 
           <Link
             href="/transaksi"
-            onClick={() => setPendingPath('/transaksi')}
+            prefetch={true}
+            onTouchStart={() => router.prefetch('/transaksi')}
+            onClick={() => startNav('/transaksi')}
             className="flex flex-col items-center gap-0.5 py-1 text-[11px] font-medium active:scale-95 transition-transform"
             style={{ color: currentPath === '/transaksi' ? 'var(--primary)' : 'var(--muted)' }}
           >
@@ -790,7 +927,9 @@ export default function AppShell({
 
           <Link
             href="/anggaran"
-            onClick={() => setPendingPath('/anggaran')}
+            prefetch={true}
+            onTouchStart={() => router.prefetch('/anggaran')}
+            onClick={() => startNav('/anggaran')}
             className="flex flex-col items-center gap-0.5 py-1 text-[11px] font-medium active:scale-95 transition-transform"
             style={{ color: currentPath === '/anggaran' ? 'var(--primary)' : 'var(--muted)' }}
           >
@@ -821,7 +960,8 @@ export default function AppShell({
               <Link
                 key={item.href}
                 href={item.href}
-                onClick={() => setPendingPath(item.href)}
+                prefetch={true}
+                onClick={() => startNav(item.href)}
                 className="flex flex-col items-center gap-0.5 text-[11px] font-medium active:scale-95 transition-transform"
                 style={{ color: active ? 'var(--primary)' : 'var(--muted)' }}
               >
@@ -830,7 +970,7 @@ export default function AppShell({
               </Link>
             );
           })}
-          <form action={keluarAkun} className="flex justify-center">
+          <form action={keluarAkun} onSubmit={handleLogoutCleanup} className="flex justify-center">
             <button
               type="submit"
               className="flex flex-col items-center gap-0.5 text-[11px] font-medium cursor-pointer"
@@ -875,22 +1015,15 @@ export default function AppShell({
             </div>
 
             <div className="grid grid-cols-3 gap-2.5 mb-4">
-              {[
-                { href: '/tabungan', label: 'Tabungan', icon: PiggyBank },
-                { href: '/tagihan', label: 'Tagihan', icon: Receipt },
-                { href: '/insight', label: 'Insight', icon: Lightbulb },
-                { href: '/laporan', label: 'Laporan', icon: FileArrowDown },
-                { href: '/kategori', label: 'Kategori', icon: Tag },
-                { href: '/notifikasi', label: 'Notifikasi', icon: Bell },
-                { href: '/pengaturan', label: 'Pengaturan', icon: GearSix },
-              ].map((item) => {
+              {MORE_NAV.map((item) => {
                 const Icon = item.icon;
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
+                    prefetch={true}
                     onClick={() => {
-                      setPendingPath(item.href);
+                      startNav(item.href);
                       setMoreOpen(false);
                     }}
                     className="flex flex-col items-center gap-1.5 p-3 rounded-2xl border text-xs font-medium active:scale-95 transition-transform"
@@ -905,7 +1038,7 @@ export default function AppShell({
 
             <div className="flex items-center justify-between pt-3 border-t" style={{ borderColor: 'var(--border)' }}>
               <ThemeToggle />
-              <form action={keluarAkun}>
+              <form action={keluarAkun} onSubmit={handleLogoutCleanup}>
                 <button
                   type="submit"
                   className="inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold cursor-pointer"

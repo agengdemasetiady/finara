@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { ToastProvider } from '@/components/ui/ToastProvider';
 import AppShell from '@/components/app/AppShell';
 import type { Notifikasi } from '@/lib/types/database';
@@ -41,12 +42,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     redirect('/masuk');
   }
 
-  const { createAdminClient } = await import('@/lib/supabase/admin');
   const admin = createAdminClient();
 
   let { data: akun } = await admin
     .from('akun')
-    .select('*')
+    .select('id, email, nama, profil, peran, aktif')
     .eq('id', user.id)
     .single();
 
@@ -61,7 +61,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         peran: 'pengguna',
         aktif: true,
       })
-      .select('*')
+      .select('id, email, nama, profil, peran, aktif')
       .single();
 
     if (upsertErr) {
@@ -103,7 +103,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         .eq('sudah_dibaca', false),
       supabase
         .from('notifikasi')
-        .select('*')
+        .select('id, jenis, pesan, sudah_dibaca, dibuat_pada, id_pengguna, kunci_unik')
         .eq('id_pengguna', user.id)
         .order('dibuat_pada', { ascending: false })
         .limit(15),

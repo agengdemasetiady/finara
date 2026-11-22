@@ -6,6 +6,22 @@ import { transaksiSchema } from '@/lib/validation/schemas';
 import { evaluasiPeringatanAnggaran } from '@/lib/domain/anggaran';
 import type { ActionResult } from './auth';
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const processedNonces = new Map<string, number>();
+const NONCE_TTL_MS = 30_000;
+
+function registerNonceOnce(key: string): boolean {
+  const now = Date.now();
+  for (const [k, exp] of processedNonces.entries()) {
+    if (exp <= now) processedNonces.delete(k);
+  }
+  if (processedNonces.has(key)) {
+    return false;
+  }
+  processedNonces.set(key, now + NONCE_TTL_MS);
+  return true;
+}
+
 export async function tambahTransaksi(raw: unknown): Promise<ActionResult> {
   const parsed = transaksiSchema.safeParse(raw);
   if (!parsed.success) {
@@ -21,9 +37,17 @@ export async function tambahTransaksi(raw: unknown): Promise<ActionResult> {
     return { ok: false, message: 'Sesi berakhir. Silakan masuk kembali.' };
   }
 
+  const rawRecord = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : null;
+  const nonce = typeof rawRecord?.idempotencyKey === 'string' ? rawRecord.idempotencyKey.trim() : '';
+  if (nonce && nonce.length <= 80) {
+    const scopedNonce = `${user.id}:${nonce}`;
+    if (!registerNonceOnce(scopedNonce)) {
+      return { ok: true, message: 'Transaksi sudah diproses.', warning: null };
+    }
+  }
+
   const { jumlah, jenis, tanggal, catatan, id_kategori } = parsed.data;
 
-  // Langkah 2-8 Sequence Diagram D.4 via RPC transaksional
   const { data: rpcResult, error: rpcError } = await supabase.rpc('catat_transaksi_dan_cek_anggaran', {
     p_jumlah: jumlah,
     p_jenis: jenis,
@@ -57,6 +81,10 @@ export async function tambahTransaksi(raw: unknown): Promise<ActionResult> {
 }
 
 export async function ubahTransaksi(id: string, raw: unknown): Promise<ActionResult> {
+  if (!UUID_REGEX.test(id)) {
+    return { ok: false, message: 'ID transaksi tidak valid.' };
+  }
+
   const parsed = transaksiSchema.safeParse(raw);
   if (!parsed.success) {
     return { ok: false, message: parsed.error.issues[0]?.message || 'Data transaksi belum valid.' };
@@ -73,7 +101,6 @@ export async function ubahTransaksi(id: string, raw: unknown): Promise<ActionRes
 
   const { jumlah, jenis, tanggal, catatan, id_kategori } = parsed.data;
 
-  // Validasi kepemilikan kategori
   const { data: kat } = await supabase
     .from('kategori')
     .select('id, nama, jenis, is_bawaan, id_pengguna')
@@ -165,6 +192,10 @@ export async function ubahTransaksi(id: string, raw: unknown): Promise<ActionRes
 }
 
 export async function hapusTransaksi(id: string): Promise<ActionResult> {
+  if (!UUID_REGEX.test(id)) {
+    return { ok: false, message: 'ID transaksi tidak valid.' };
+  }
+
   const supabase = await createClient();
   const {
     data: { user },

@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { PencilSimple, X } from '@phosphor-icons/react';
 import { tambahTransaksi } from '@/lib/actions/transaksi';
 import { useToast } from '@/components/ui/ToastProvider';
@@ -17,6 +18,15 @@ export interface SimpleCategory {
   warna: string | null;
 }
 
+const JENIS_OPTIONS = ['PENGELUARAN', 'PEMASUKAN'] as const;
+
+function createRequestNonce(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
 export function QuickTransactionModal({
   open,
   onClose,
@@ -26,8 +36,12 @@ export function QuickTransactionModal({
   onClose: () => void;
   categories: SimpleCategory[];
 }) {
+  const router = useRouter();
   const { showToast } = useToast();
+  const [, startRefresh] = useTransition();
+  const dialogRef = useRef<HTMLDivElement>(null);
   const amountRef = useRef<HTMLInputElement>(null);
+  const submitGuardRef = useRef(false);
 
   const [jenis, setJenis] = useState<JenisTrx>('PENGELUARAN');
   const [rawDigits, setRawDigits] = useState('');
@@ -36,7 +50,7 @@ export function QuickTransactionModal({
   const [showCustomDate, setShowCustomDate] = useState(false);
   const [showNote, setShowNote] = useState(false);
   const [catatan, setCatatan] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const [amountEditable, setAmountEditable] = useState(false);
 
   const filteredCats = useMemo(
     () => categories.filter((c) => c.jenis === jenis),
@@ -51,6 +65,8 @@ export function QuickTransactionModal({
 
   useEffect(() => {
     if (open) {
+      submitGuardRef.current = false;
+      setAmountEditable(false);
       if (document.activeElement instanceof HTMLElement) {
         document.activeElement.blur();
       }
@@ -59,6 +75,9 @@ export function QuickTransactionModal({
       setShowNote(false);
       setShowCustomDate(false);
       setTanggal(getTodayISO());
+      requestAnimationFrame(() => {
+        dialogRef.current?.focus({ preventScroll: true });
+      });
     }
   }, [open]);
 
@@ -79,12 +98,21 @@ export function QuickTransactionModal({
     setRawDigits(digits);
   }
 
-  async function handleSubmit(e: React.FormEvent) {
+  function enableAndFocusAmount() {
+    setAmountEditable(true);
+    requestAnimationFrame(() => {
+      amountRef.current?.focus();
+    });
+  }
+
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (submitGuardRef.current) return;
+
     const nominal = parseInt(rawDigits || '0', 10);
     if (nominal <= 0) {
       showToast('Nominal harus lebih dari 0.', 'error');
-      amountRef.current?.focus();
+      enableAndFocusAmount();
       return;
     }
     if (!selectedKat) {
@@ -92,26 +120,60 @@ export function QuickTransactionModal({
       return;
     }
 
-    setSubmitting(true);
-    const res = await tambahTransaksi({
+    submitGuardRef.current = true;
+    const idempotencyKey = createRequestNonce();
+    const tempId = `temp-${idempotencyKey}`;
+    const cleanNote = catatan.trim() || null;
+    const payload = {
       jumlah: nominal,
       jenis,
       tanggal,
-      catatan: catatan.trim() || null,
+      catatan: cleanNote,
       id_kategori: selectedKat,
-    });
-    setSubmitting(false);
+      idempotencyKey,
+    };
 
-    if (!res.ok) {
-      showToast(res.message, 'error');
-      return;
-    }
+    window.dispatchEvent(
+      new CustomEvent('finara:trx-optimistic-add', {
+        detail: {
+          id: tempId,
+          jumlah: nominal,
+          jenis,
+          tanggal,
+          catatan: cleanNote,
+          id_kategori: selectedKat,
+        },
+      })
+    );
 
     showToast('Tersimpan', 'success');
-    if (res.warning) {
-      showToast(res.warning, 'warning');
-    }
     onClose();
+
+    void tambahTransaksi(payload).then((res) => {
+      if (!res.ok) {
+        window.dispatchEvent(
+          new CustomEvent('finara:trx-rollback', {
+            detail: { id: tempId },
+          })
+        );
+        showToast(res.message, 'error');
+        return;
+      }
+
+      window.dispatchEvent(
+        new CustomEvent('finara:trx-confirmed', {
+          detail: { id: tempId },
+        })
+      );
+
+      if (res.warning) {
+        showToast(res.warning, 'warning');
+      }
+
+      startRefresh(() => {
+        router.refresh();
+      });
+    });
   }
 
   return (
@@ -123,11 +185,12 @@ export function QuickTransactionModal({
       }}
     >
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="fn-catat-title"
         tabIndex={-1}
-        className="w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl border max-h-[92dvh] overflow-y-auto"
+        className="w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 shadow-2xl border max-h-[92dvh] overflow-y-auto focus:outline-none"
         style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
       >
         <div className="flex items-center justify-between mb-4">
@@ -152,7 +215,7 @@ export function QuickTransactionModal({
             role="group"
             aria-label="Jenis transaksi"
           >
-            {(['PENGELUARAN', 'PEMASUKAN'] as const).map((item) => {
+            {JENIS_OPTIONS.map((item) => {
               const active = jenis === item;
               return (
                 <button
@@ -172,6 +235,7 @@ export function QuickTransactionModal({
           </div>
 
           <div
+            onPointerDown={() => setAmountEditable(true)}
             className="rounded-2xl px-4 py-3 border flex items-baseline gap-2"
             style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border-strong)' }}
           >
@@ -182,7 +246,9 @@ export function QuickTransactionModal({
               ref={amountRef}
               type="text"
               inputMode="numeric"
-              autoFocus={false}
+              readOnly={!amountEditable}
+              onPointerDown={() => setAmountEditable(true)}
+              onFocus={() => setAmountEditable(true)}
               aria-label="Nominal transaksi"
               value={rawDigits ? formatAngka(rawDigits) : ''}
               onChange={(e) => handleAmountChange(e.target.value)}
@@ -301,8 +367,8 @@ export function QuickTransactionModal({
             />
           )}
 
-          <button type="submit" disabled={submitting} className="fn-btn fn-btn-primary w-full min-h-[48px]">
-            {submitting ? 'Menyimpan...' : 'Simpan'}
+          <button type="submit" className="fn-btn fn-btn-primary w-full min-h-[48px]">
+            Simpan
           </button>
         </form>
       </div>

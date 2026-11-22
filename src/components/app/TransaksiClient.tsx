@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useMemo, useState, useEffect, useRef } from 'react';
+import React, { useMemo, useState, useEffect, useRef, useTransition } from 'react';
 import { createPortal } from 'react-dom';
+import { useRouter } from 'next/navigation';
 import { MagnifyingGlass, PencilSimple, Trash, X } from '@phosphor-icons/react';
 import { ubahTransaksi, hapusTransaksi } from '@/lib/actions/transaksi';
 import { useToast } from '@/components/ui/ToastProvider';
@@ -19,6 +20,58 @@ export interface TransaksiRow {
   id_kategori: string;
 }
 
+const FILTER_TABS = [
+  { id: 'SEMUA', label: 'Semua' },
+  { id: 'PENGELUARAN', label: 'Pengeluaran' },
+  { id: 'PEMASUKAN', label: 'Pemasukan' },
+] as const;
+
+const JENIS_OPTIONS = ['PENGELUARAN', 'PEMASUKAN'] as const;
+
+function AnimatedRupiah({
+  value,
+  startFromZero = false,
+}: {
+  value: number;
+  startFromZero?: boolean;
+}) {
+  const target = Math.round(value);
+  const [displayValue, setDisplayValue] = useState<number>(startFromZero ? 0 : target);
+  const prevTargetRef = useRef<number>(startFromZero ? 0 : target);
+
+  useEffect(() => {
+    const from = prevTargetRef.current;
+    if (from === target) {
+      setDisplayValue(target);
+      return;
+    }
+
+    let rafId = 0;
+    const duration = 550;
+    const startTime = performance.now();
+
+    const step = (now: number) => {
+      const progress = Math.min((now - startTime) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const nextVal = Math.round(from + (target - from) * eased);
+      prevTargetRef.current = nextVal;
+      setDisplayValue(nextVal);
+
+      if (progress < 1) {
+        rafId = requestAnimationFrame(step);
+      } else {
+        prevTargetRef.current = target;
+        setDisplayValue(target);
+      }
+    };
+
+    rafId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(rafId);
+  }, [target]);
+
+  return <>{formatRupiah(displayValue)}</>;
+}
+
 export function TransaksiClient({
   transactions,
   categories,
@@ -26,12 +79,21 @@ export function TransaksiClient({
   transactions: TransaksiRow[];
   categories: SimpleCategory[];
 }) {
+  const router = useRouter();
   const { showToast } = useToast();
+  const [, startRefresh] = useTransition();
+  const [localTransactions, setLocalTransactions] = useState<TransaksiRow[]>(transactions);
+  const [highlightedIds, setHighlightedIds] = useState<Record<string, boolean>>({});
+  const [pendingSyncIds, setPendingSyncIds] = useState<Record<string, boolean>>({});
+  const [filterPulse, setFilterPulse] = useState(false);
+
   const [jenisFilter, setJenisFilter] = useState<'SEMUA' | JenisTrx>('SEMUA');
   const [katFilter, setKatFilter] = useState<string>('SEMUA');
   const [search, setSearch] = useState('');
   const [filterInteracting, setFilterInteracting] = useState(false);
   const interactTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const filterPulseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const editDialogRef = useRef<HTMLDivElement>(null);
 
   const [editing, setEditing] = useState<TransaksiRow | null>(null);
   const [editJenis, setEditJenis] = useState<JenisTrx>('PENGELUARAN');
@@ -39,17 +101,93 @@ export function TransaksiClient({
   const [editKat, setEditKat] = useState('');
   const [editTanggal, setEditTanggal] = useState('');
   const [editCatatan, setEditCatatan] = useState('');
-  const [savingEdit, setSavingEdit] = useState(false);
+  const [editAmountEditable, setEditAmountEditable] = useState(false);
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
-
   const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setLocalTransactions(transactions);
+  }, [transactions]);
+
   useEffect(() => {
     setMounted(true);
+
+    function onOptimisticAdd(e: Event) {
+      const item = (e as CustomEvent<TransaksiRow>).detail;
+      if (!item) return;
+
+      setHighlightedIds((prev) => ({ ...prev, [item.id]: true }));
+      setPendingSyncIds((prev) => ({ ...prev, [item.id]: true }));
+
+      setLocalTransactions((prev) => {
+        const next = [item, ...prev.filter((row) => row.id !== item.id)];
+        return next.sort((a, b) => b.tanggal.localeCompare(a.tanggal));
+      });
+
+      setTimeout(() => {
+        setHighlightedIds((prev) => {
+          const copy = { ...prev };
+          delete copy[item.id];
+          return copy;
+        });
+      }, 2000);
+    }
+
+    function onConfirmed(e: Event) {
+      const id = (e as CustomEvent<{ id: string }>).detail?.id;
+      if (!id) return;
+      setPendingSyncIds((prev) => {
+        const copy = { ...prev };
+        delete copy[id];
+        return copy;
+      });
+    }
+
+    function onRollback(e: Event) {
+      const id = (e as CustomEvent<{ id: string }>).detail?.id;
+      if (!id) return;
+      setLocalTransactions((prev) => prev.filter((row) => row.id !== id));
+      setHighlightedIds((prev) => {
+        const copy = { ...prev };
+        delete copy[id];
+        return copy;
+      });
+      setPendingSyncIds((prev) => {
+        const copy = { ...prev };
+        delete copy[id];
+        return copy;
+      });
+    }
+
+    function onClearCache() {
+      setLocalTransactions([]);
+      setHighlightedIds({});
+      setPendingSyncIds({});
+    }
+
+    window.addEventListener('finara:trx-optimistic-add', onOptimisticAdd);
+    window.addEventListener('finara:trx-confirmed', onConfirmed);
+    window.addEventListener('finara:trx-rollback', onRollback);
+    window.addEventListener('finara:clear-cache', onClearCache);
+
     return () => {
       if (interactTimerRef.current) clearTimeout(interactTimerRef.current);
+      if (filterPulseTimerRef.current) clearTimeout(filterPulseTimerRef.current);
+      window.removeEventListener('finara:trx-optimistic-add', onOptimisticAdd);
+      window.removeEventListener('finara:trx-confirmed', onConfirmed);
+      window.removeEventListener('finara:trx-rollback', onRollback);
+      window.removeEventListener('finara:clear-cache', onClearCache);
     };
   }, []);
+
+  function triggerMicroFilterBeat() {
+    setFilterPulse(true);
+    if (filterPulseTimerRef.current) clearTimeout(filterPulseTimerRef.current);
+    filterPulseTimerRef.current = setTimeout(() => {
+      setFilterPulse(false);
+    }, 130);
+  }
 
   function triggerFilterScrollbar() {
     setFilterInteracting(true);
@@ -63,7 +201,7 @@ export function TransaksiClient({
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return transactions.filter((t) => {
+    return localTransactions.filter((t) => {
       if (jenisFilter !== 'SEMUA' && t.jenis !== jenisFilter) return false;
       if (katFilter !== 'SEMUA' && t.id_kategori !== katFilter) return false;
       if (q) {
@@ -73,7 +211,7 @@ export function TransaksiClient({
       }
       return true;
     });
-  }, [transactions, jenisFilter, katFilter, search, katMap]);
+  }, [localTransactions, jenisFilter, katFilter, search, katMap]);
 
   const grouped = useMemo(() => {
     const groups = new Map<string, TransaksiRow[]>();
@@ -86,15 +224,26 @@ export function TransaksiClient({
   }, [filtered]);
 
   function openEdit(t: TransaksiRow) {
+    if (t.id.startsWith('temp-') && pendingSyncIds[t.id]) {
+      showToast('Transaksi sedang disinkronkan, tunggu sebentar.', 'warning');
+      return;
+    }
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    setEditAmountEditable(false);
     setEditing(t);
     setEditJenis(t.jenis);
     setEditDigits(String(Math.round(t.jumlah)));
     setEditKat(t.id_kategori);
     setEditTanggal(t.tanggal);
     setEditCatatan(t.catatan || '');
+    requestAnimationFrame(() => {
+      editDialogRef.current?.focus({ preventScroll: true });
+    });
   }
 
-  async function handleSaveEdit(e: React.FormEvent) {
+  function handleSaveEdit(e: React.FormEvent) {
     e.preventDefault();
     if (!editing) return;
     const nominal = parseInt(editDigits || '0', 10);
@@ -103,34 +252,68 @@ export function TransaksiClient({
       return;
     }
 
-    setSavingEdit(true);
-    const res = await ubahTransaksi(editing.id, {
+    const targetId = editing.id;
+    const snapshot = localTransactions;
+    const payload = {
       jumlah: nominal,
       jenis: editJenis,
       tanggal: editTanggal,
       catatan: editCatatan.trim() || null,
       id_kategori: editKat,
-    });
-    setSavingEdit(false);
+    };
 
-    if (!res.ok) {
-      showToast(res.message, 'error');
-      return;
-    }
-
-    showToast(res.message, 'success');
-    if (res.warning) showToast(res.warning, 'warning');
+    setHighlightedIds((prev) => ({ ...prev, [targetId]: true }));
+    setLocalTransactions((prev) =>
+      prev
+        .map((row) => (row.id === targetId ? { ...row, ...payload } : row))
+        .sort((a, b) => b.tanggal.localeCompare(a.tanggal))
+    );
     setEditing(null);
+    showToast('Transaksi diperbarui.', 'success');
+
+    setTimeout(() => {
+      setHighlightedIds((prev) => {
+        const copy = { ...prev };
+        delete copy[targetId];
+        return copy;
+      });
+    }, 1800);
+
+    void ubahTransaksi(targetId, payload).then((res) => {
+      if (!res.ok) {
+        setLocalTransactions(snapshot);
+        showToast(res.message, 'error');
+        return;
+      }
+      if (res.warning) showToast(res.warning, 'warning');
+      startRefresh(() => {
+        router.refresh();
+      });
+    });
   }
 
-  async function handleDelete(id: string) {
-    const res = await hapusTransaksi(id);
-    setDeletingId(null);
-    if (!res.ok) {
-      showToast(res.message, 'error');
+  function handleDelete(id: string) {
+    if (id.startsWith('temp-') && pendingSyncIds[id]) {
+      showToast('Transaksi sedang disinkronkan, tunggu sebentar.', 'warning');
+      setDeletingId(null);
       return;
     }
-    showToast(res.message, 'success');
+
+    const snapshot = localTransactions;
+    setLocalTransactions((prev) => prev.filter((row) => row.id !== id));
+    setDeletingId(null);
+    showToast('Transaksi dihapus.', 'success');
+
+    void hapusTransaksi(id).then((res) => {
+      if (!res.ok) {
+        setLocalTransactions(snapshot);
+        showToast(res.message, 'error');
+        return;
+      }
+      startRefresh(() => {
+        router.refresh();
+      });
+    });
   }
 
   const todayISO = getTodayISO();
@@ -139,24 +322,18 @@ export function TransaksiClient({
   return (
     <div className="flex flex-col gap-5">
       <style>{`
-        .fn-filter-strip {
-          scrollbar-width: none;
-          -ms-overflow-style: none;
+        @keyframes fnTrxSlideIn {
+          from {
+            opacity: 0;
+            transform: translate3d(0, -10px, 0);
+          }
+          to {
+            opacity: 1;
+            transform: translate3d(0, 0, 0);
+          }
         }
-        .fn-filter-strip::-webkit-scrollbar {
-          height: 0px;
-          background: transparent;
-        }
-        .fn-filter-strip.is-interacting {
-          scrollbar-width: thin;
-          scrollbar-color: var(--border-strong) transparent;
-        }
-        .fn-filter-strip.is-interacting::-webkit-scrollbar {
-          height: 3px;
-        }
-        .fn-filter-strip.is-interacting::-webkit-scrollbar-thumb {
-          background: var(--border-strong);
-          border-radius: 9999px;
+        .fn-trx-row-enter {
+          animation: fnTrxSlideIn 0.32s cubic-bezier(0.22, 1, 0.36, 1) forwards;
         }
       `}</style>
 
@@ -168,24 +345,25 @@ export function TransaksiClient({
           onPointerDown={triggerFilterScrollbar}
           onMouseEnter={() => setFilterInteracting(true)}
           onMouseLeave={() => setFilterInteracting(false)}
-          className={`fn-filter-strip flex items-center gap-2 overflow-x-auto py-0.5 ${
-            filterInteracting ? 'is-interacting' : ''
+          className={`flex items-center gap-2 overflow-x-auto py-0.5 ${
+            filterInteracting
+              ? '[scrollbar-width:thin]'
+              : '[scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
           }`}
         >
-          {(
-            [
-              { id: 'SEMUA', label: 'Semua' },
-              { id: 'PENGELUARAN', label: 'Pengeluaran' },
-              { id: 'PEMASUKAN', label: 'Pemasukan' },
-            ] as const
-          ).map((tab) => {
+          {FILTER_TABS.map((tab) => {
             const active = jenisFilter === tab.id;
             return (
               <button
                 key={tab.id}
                 type="button"
-                onClick={() => setJenisFilter(tab.id)}
-                className="px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border cursor-pointer"
+                onClick={() => {
+                  if (jenisFilter !== tab.id) {
+                    setJenisFilter(tab.id);
+                    triggerMicroFilterBeat();
+                  }
+                }}
+                className="px-3.5 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border cursor-pointer transition-colors"
                 style={{
                   backgroundColor: active ? 'var(--primary)' : 'var(--bg)',
                   color: active ? 'var(--on-primary)' : 'var(--muted)',
@@ -200,7 +378,10 @@ export function TransaksiClient({
           <select
             aria-label="Filter kategori"
             value={katFilter}
-            onChange={(e) => setKatFilter(e.target.value)}
+            onChange={(e) => {
+              setKatFilter(e.target.value);
+              triggerMicroFilterBeat();
+            }}
             className="px-3 py-1.5 rounded-full text-xs font-semibold border cursor-pointer shrink-0"
             style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)', color: 'var(--ink)' }}
           >
@@ -230,8 +411,19 @@ export function TransaksiClient({
         </div>
       </div>
 
-      {/* Daftar Transaksi Dikelompokkan per Hari */}
-      {grouped.length === 0 ? (
+      {/* Micro-Skeleton saat Ganti Filter */}
+      {filterPulse ? (
+        <div className="fn-card overflow-hidden animate-pulse">
+          <div className="px-5 py-3 border-b" style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)' }}>
+            <div className="h-3.5 w-32 rounded-lg" style={{ backgroundColor: 'var(--border)' }} />
+          </div>
+          <div className="p-4 space-y-3">
+            <div className="h-12 rounded-2xl" style={{ backgroundColor: 'var(--bg)' }} />
+            <div className="h-12 rounded-2xl" style={{ backgroundColor: 'var(--bg)' }} />
+            <div className="h-12 rounded-2xl" style={{ backgroundColor: 'var(--bg)' }} />
+          </div>
+        </div>
+      ) : grouped.length === 0 ? (
         <div className="fn-card p-8 text-center">
           <p className="fn-display text-lg font-semibold">Tidak ada transaksi ditemukan</p>
           <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
@@ -244,6 +436,9 @@ export function TransaksiClient({
             const totalKeluarHari = items
               .filter((i) => i.jenis === 'PENGELUARAN')
               .reduce((s, i) => s + Math.round(i.jumlah), 0);
+            const hasNewExpenseInGroup = items.some(
+              (i) => i.jenis === 'PENGELUARAN' && Boolean(highlightedIds[i.id])
+            );
 
             return (
               <section key={tanggal} className="fn-card overflow-hidden">
@@ -253,7 +448,13 @@ export function TransaksiClient({
                 >
                   <span>{formatHariKelompok(tanggal, todayISO)}</span>
                   {totalKeluarHari > 0 && (
-                    <span className="fn-num">Keluar {formatRupiah(totalKeluarHari)}</span>
+                    <span className="fn-num">
+                      Keluar{' '}
+                      <AnimatedRupiah
+                        value={totalKeluarHari}
+                        startFromZero={hasNewExpenseInGroup && items.length === 1}
+                      />
+                    </span>
                   )}
                 </div>
 
@@ -261,15 +462,32 @@ export function TransaksiClient({
                   {items.map((t) => {
                     const kat = katMap.get(t.id_kategori);
                     const isMasuk = t.jenis === 'PEMASUKAN';
+                    const isHighlighted = Boolean(highlightedIds[t.id]);
+                    const isSyncing = Boolean(pendingSyncIds[t.id]);
+
                     return (
                       <li
                         key={t.id}
-                        className="px-4 sm:px-5 py-3.5 flex items-center justify-between gap-3"
+                        className={`px-4 sm:px-5 py-3.5 flex items-center justify-between gap-3 transition-colors duration-700 ${
+                          isHighlighted ? 'fn-trx-row-enter' : ''
+                        }`}
+                        style={{
+                          backgroundColor: isHighlighted ? 'var(--primary-soft)' : 'transparent',
+                        }}
                       >
                         <div className="flex items-center gap-3 min-w-0">
                           <CategoryIconChip ikon={kat?.ikon} warna={kat?.warna} size={40} />
                           <div className="min-w-0">
-                            <p className="font-semibold text-sm truncate">{kat?.nama || 'Lainnya'}</p>
+                            <div className="flex items-center gap-1.5">
+                              <p className="font-semibold text-sm truncate">{kat?.nama || 'Lainnya'}</p>
+                              {isSyncing && (
+                                <span
+                                  aria-label="Menyinkronkan"
+                                  className="w-1.5 h-1.5 rounded-full animate-pulse shrink-0"
+                                  style={{ backgroundColor: 'var(--primary)' }}
+                                />
+                              )}
+                            </div>
                             {t.catatan && (
                               <p className="text-xs truncate" style={{ color: 'var(--muted)' }}>
                                 {t.catatan}
@@ -283,8 +501,8 @@ export function TransaksiClient({
                             className="text-sm sm:text-base font-semibold fn-num"
                             style={{ color: isMasuk ? 'var(--primary)' : 'var(--ink)' }}
                           >
-                            {isMasuk ? '+' : '−'}
-                            {formatRupiah(t.jumlah)}
+                            {isMasuk ? '+' : '\u2212'}
+                            <AnimatedRupiah value={t.jumlah} startFromZero={isHighlighted} />
                           </span>
 
                           <button
@@ -350,10 +568,12 @@ export function TransaksiClient({
             }}
           >
             <div
+              ref={editDialogRef}
               role="dialog"
               aria-modal="true"
               aria-labelledby="edit-trx-title"
-              className="w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] border-t sm:border shadow-2xl max-h-[90dvh] overflow-y-auto"
+              tabIndex={-1}
+              className="w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl p-5 sm:p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] border-t sm:border shadow-2xl max-h-[90dvh] overflow-y-auto focus:outline-none"
               style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
             >
               <div
@@ -378,7 +598,7 @@ export function TransaksiClient({
 
               <form onSubmit={handleSaveEdit} className="flex flex-col gap-3.5">
                 <div className="grid grid-cols-2 p-1 rounded-full" style={{ backgroundColor: 'var(--bg)' }}>
-                  {(['PENGELUARAN', 'PEMASUKAN'] as const).map((item) => (
+                  {JENIS_OPTIONS.map((item) => (
                     <button
                       key={item}
                       type="button"
@@ -403,6 +623,9 @@ export function TransaksiClient({
                   <input
                     type="text"
                     inputMode="numeric"
+                    readOnly={!editAmountEditable}
+                    onPointerDown={() => setEditAmountEditable(true)}
+                    onFocus={() => setEditAmountEditable(true)}
                     value={editDigits ? formatAngka(editDigits) : ''}
                     onChange={(e) => setEditDigits(e.target.value.replace(/\D/g, '').slice(0, 12))}
                     className="fn-input font-semibold fn-num"
@@ -446,8 +669,8 @@ export function TransaksiClient({
                   />
                 </div>
 
-                <button type="submit" disabled={savingEdit} className="fn-btn fn-btn-primary w-full mt-2">
-                  {savingEdit ? 'Menyimpan...' : 'Simpan perubahan'}
+                <button type="submit" className="fn-btn fn-btn-primary w-full mt-2">
+                  Simpan perubahan
                 </button>
               </form>
             </div>
