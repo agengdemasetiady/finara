@@ -687,9 +687,11 @@ export default function AppShell({
           </div>
         </header>
 
-        {/* Page Body */}
+        {/* Page Body dengan Transisi Halus Tiap Menu */}
         <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-          <div className="fn-page-enter">{children}</div>
+          <div key={currentPath} className="fn-page-enter">
+            {children}
+          </div>
         </main>
       </div>
 

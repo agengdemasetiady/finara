@@ -10,6 +10,12 @@ import { formatAngka, getTodayISO } from '@/lib/format';
 import { subDays, format } from 'date-fns';
 import type { JenisTrx } from '@/lib/types/database';
 
+declare global {
+  interface Window {
+    __finaraPendingSyncCount?: number;
+  }
+}
+
 export interface SimpleCategory {
   id: string;
   nama: string;
@@ -25,6 +31,17 @@ function createRequestNonce(): string {
     return crypto.randomUUID();
   }
   return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function updatePendingSyncCount(delta: number) {
+  if (typeof window === 'undefined') return;
+  const next = Math.max(0, (window.__finaraPendingSyncCount || 0) + delta);
+  window.__finaraPendingSyncCount = next;
+  window.dispatchEvent(
+    new CustomEvent('finara:trx-sync-state', {
+      detail: { pendingCount: next },
+    })
+  );
 }
 
 export function QuickTransactionModal({
@@ -133,6 +150,8 @@ export function QuickTransactionModal({
       idempotencyKey,
     };
 
+    updatePendingSyncCount(1);
+
     window.dispatchEvent(
       new CustomEvent('finara:trx-optimistic-add', {
         detail: {
@@ -151,6 +170,7 @@ export function QuickTransactionModal({
 
     void tambahTransaksi(payload).then((res) => {
       if (!res.ok) {
+        updatePendingSyncCount(-1);
         window.dispatchEvent(
           new CustomEvent('finara:trx-rollback', {
             detail: { id: tempId },
@@ -173,6 +193,10 @@ export function QuickTransactionModal({
       startRefresh(() => {
         router.refresh();
       });
+
+      setTimeout(() => {
+        updatePendingSyncCount(-1);
+      }, 1500);
     });
   }
 

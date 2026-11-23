@@ -84,8 +84,11 @@ export function TransaksiClient({
   const [, startRefresh] = useTransition();
   const [localTransactions, setLocalTransactions] = useState<TransaksiRow[]>(transactions);
   const [highlightedIds, setHighlightedIds] = useState<Record<string, boolean>>({});
-  const [pendingSyncIds, setPendingSyncIds] = useState<Record<string, boolean>>({});
+  const [isSyncingNew, setIsSyncingNew] = useState<boolean>(() =>
+    typeof window !== 'undefined' ? (window.__finaraPendingSyncCount || 0) > 0 : false
+  );
   const [filterPulse, setFilterPulse] = useState(false);
+  const prevTransactionsRef = useRef<TransaksiRow[]>(transactions);
 
   const [jenisFilter, setJenisFilter] = useState<'SEMUA' | JenisTrx>('SEMUA');
   const [katFilter, setKatFilter] = useState<string>('SEMUA');
@@ -108,75 +111,59 @@ export function TransaksiClient({
 
   useEffect(() => {
     setLocalTransactions(transactions);
+
+    if (prevTransactionsRef.current !== transactions) {
+      const oldIds = new Set(prevTransactionsRef.current.map((t) => t.id));
+      const newIds = transactions.filter((t) => !oldIds.has(t.id)).map((t) => t.id);
+      prevTransactionsRef.current = transactions;
+
+      if (newIds.length > 0) {
+        setHighlightedIds((prev) => {
+          const next = { ...prev };
+          for (const id of newIds) next[id] = true;
+          return next;
+        });
+        setTimeout(() => {
+          setHighlightedIds((prev) => {
+            const copy = { ...prev };
+            for (const id of newIds) delete copy[id];
+            return copy;
+          });
+        }, 2000);
+      }
+
+      setIsSyncingNew(false);
+      if (typeof window !== 'undefined') {
+        window.__finaraPendingSyncCount = 0;
+      }
+    }
   }, [transactions]);
 
   useEffect(() => {
     setMounted(true);
 
-    function onOptimisticAdd(e: Event) {
-      const item = (e as CustomEvent<TransaksiRow>).detail;
-      if (!item) return;
-
-      setHighlightedIds((prev) => ({ ...prev, [item.id]: true }));
-      setPendingSyncIds((prev) => ({ ...prev, [item.id]: true }));
-
-      setLocalTransactions((prev) => {
-        const next = [item, ...prev.filter((row) => row.id !== item.id)];
-        return next.sort((a, b) => b.tanggal.localeCompare(a.tanggal));
-      });
-
-      setTimeout(() => {
-        setHighlightedIds((prev) => {
-          const copy = { ...prev };
-          delete copy[item.id];
-          return copy;
-        });
-      }, 2000);
+    if (typeof window !== 'undefined' && (window.__finaraPendingSyncCount || 0) > 0) {
+      setIsSyncingNew(true);
     }
 
-    function onConfirmed(e: Event) {
-      const id = (e as CustomEvent<{ id: string }>).detail?.id;
-      if (!id) return;
-      setPendingSyncIds((prev) => {
-        const copy = { ...prev };
-        delete copy[id];
-        return copy;
-      });
-    }
-
-    function onRollback(e: Event) {
-      const id = (e as CustomEvent<{ id: string }>).detail?.id;
-      if (!id) return;
-      setLocalTransactions((prev) => prev.filter((row) => row.id !== id));
-      setHighlightedIds((prev) => {
-        const copy = { ...prev };
-        delete copy[id];
-        return copy;
-      });
-      setPendingSyncIds((prev) => {
-        const copy = { ...prev };
-        delete copy[id];
-        return copy;
-      });
+    function onSyncState(e: Event) {
+      const count = (e as CustomEvent<{ pendingCount: number }>).detail?.pendingCount ?? 0;
+      setIsSyncingNew(count > 0);
     }
 
     function onClearCache() {
       setLocalTransactions([]);
       setHighlightedIds({});
-      setPendingSyncIds({});
+      setIsSyncingNew(false);
     }
 
-    window.addEventListener('finara:trx-optimistic-add', onOptimisticAdd);
-    window.addEventListener('finara:trx-confirmed', onConfirmed);
-    window.addEventListener('finara:trx-rollback', onRollback);
+    window.addEventListener('finara:trx-sync-state', onSyncState);
     window.addEventListener('finara:clear-cache', onClearCache);
 
     return () => {
       if (interactTimerRef.current) clearTimeout(interactTimerRef.current);
       if (filterPulseTimerRef.current) clearTimeout(filterPulseTimerRef.current);
-      window.removeEventListener('finara:trx-optimistic-add', onOptimisticAdd);
-      window.removeEventListener('finara:trx-confirmed', onConfirmed);
-      window.removeEventListener('finara:trx-rollback', onRollback);
+      window.removeEventListener('finara:trx-sync-state', onSyncState);
       window.removeEventListener('finara:clear-cache', onClearCache);
     };
   }, []);
@@ -224,10 +211,6 @@ export function TransaksiClient({
   }, [filtered]);
 
   function openEdit(t: TransaksiRow) {
-    if (t.id.startsWith('temp-') && pendingSyncIds[t.id]) {
-      showToast('Transaksi sedang disinkronkan, tunggu sebentar.', 'warning');
-      return;
-    }
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
@@ -293,12 +276,6 @@ export function TransaksiClient({
   }
 
   function handleDelete(id: string) {
-    if (id.startsWith('temp-') && pendingSyncIds[id]) {
-      showToast('Transaksi sedang disinkronkan, tunggu sebentar.', 'warning');
-      setDeletingId(null);
-      return;
-    }
-
     const snapshot = localTransactions;
     setLocalTransactions((prev) => prev.filter((row) => row.id !== id));
     setDeletingId(null);
@@ -411,6 +388,39 @@ export function TransaksiClient({
         </div>
       </div>
 
+      {/* Skeleton Singkat saat Transaksi Baru Sedang Disimpan ke Server */}
+      {isSyncingNew && (
+        <section
+          aria-busy="true"
+          aria-label="Menyimpan transaksi terbaru"
+          className="fn-card overflow-hidden animate-pulse"
+        >
+          <div
+            className="px-4 sm:px-5 py-3 border-b flex items-center justify-between text-xs font-semibold"
+            style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)', color: 'var(--primary)' }}
+          >
+            <span className="inline-flex items-center gap-2">
+              <span
+                className="w-2 h-2 rounded-full animate-ping"
+                style={{ backgroundColor: 'var(--primary)' }}
+              />
+              Menyimpan transaksi terbaru...
+            </span>
+            <div className="h-3 w-20 rounded-md" style={{ backgroundColor: 'var(--border)' }} />
+          </div>
+          <div className="px-4 sm:px-5 py-3.5 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <div className="w-10 h-10 rounded-2xl shrink-0" style={{ backgroundColor: 'var(--bg)' }} />
+              <div className="space-y-2 flex-1 max-w-[180px]">
+                <div className="h-3.5 w-28 rounded-lg" style={{ backgroundColor: 'var(--border)' }} />
+                <div className="h-3 w-20 rounded-lg" style={{ backgroundColor: 'var(--bg)' }} />
+              </div>
+            </div>
+            <div className="h-4 w-24 rounded-lg shrink-0" style={{ backgroundColor: 'var(--border)' }} />
+          </div>
+        </section>
+      )}
+
       {/* Micro-Skeleton saat Ganti Filter */}
       {filterPulse ? (
         <div className="fn-card overflow-hidden animate-pulse">
@@ -424,12 +434,14 @@ export function TransaksiClient({
           </div>
         </div>
       ) : grouped.length === 0 ? (
-        <div className="fn-card p-8 text-center">
-          <p className="fn-display text-lg font-semibold">Tidak ada transaksi ditemukan</p>
-          <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
-            Coba ubah filter atau catat transaksi baru untuk periode ini.
-          </p>
-        </div>
+        !isSyncingNew && (
+          <div className="fn-card p-8 text-center">
+            <p className="fn-display text-lg font-semibold">Tidak ada transaksi ditemukan</p>
+            <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
+              Coba ubah filter atau catat transaksi baru untuk periode ini.
+            </p>
+          </div>
+        )
       ) : (
         <div className="flex flex-col gap-4">
           {grouped.map(([tanggal, items]) => {
@@ -463,7 +475,6 @@ export function TransaksiClient({
                     const kat = katMap.get(t.id_kategori);
                     const isMasuk = t.jenis === 'PEMASUKAN';
                     const isHighlighted = Boolean(highlightedIds[t.id]);
-                    const isSyncing = Boolean(pendingSyncIds[t.id]);
 
                     return (
                       <li
@@ -478,16 +489,7 @@ export function TransaksiClient({
                         <div className="flex items-center gap-3 min-w-0">
                           <CategoryIconChip ikon={kat?.ikon} warna={kat?.warna} size={40} />
                           <div className="min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <p className="font-semibold text-sm truncate">{kat?.nama || 'Lainnya'}</p>
-                              {isSyncing && (
-                                <span
-                                  aria-label="Menyinkronkan"
-                                  className="w-1.5 h-1.5 rounded-full animate-pulse shrink-0"
-                                  style={{ backgroundColor: 'var(--primary)' }}
-                                />
-                              )}
-                            </div>
+                            <p className="font-semibold text-sm truncate">{kat?.nama || 'Lainnya'}</p>
                             {t.catatan && (
                               <p className="text-xs truncate" style={{ color: 'var(--muted)' }}>
                                 {t.catatan}
