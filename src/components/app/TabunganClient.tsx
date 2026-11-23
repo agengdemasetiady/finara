@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   PiggyBank,
   Plus,
@@ -32,6 +32,8 @@ export function TabunganClient({ targets }: { targets: TargetTabunganView[] }) {
   const { showToast } = useToast();
   const [localTargets, setLocalTargets] = useState<TargetTabunganView[]>(targets);
   const [removingIds, setRemovingIds] = useState<Record<string, boolean>>({});
+  const pendingCountRef = useRef(0);
+  const deleteLockRef = useRef<Record<string, boolean>>({});
 
   const [nama, setNama] = useState('');
   const [targetDigits, setTargetDigits] = useState('');
@@ -47,11 +49,14 @@ export function TabunganClient({ targets }: { targets: TargetTabunganView[] }) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
+    if (pendingCountRef.current > 0) return;
     setLocalTargets(targets);
   }, [targets]);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
+    if (creating) return;
+
     const targetJumlah = parseInt(targetDigits || '0', 10);
     if (nama.trim().length < 2) {
       showToast('Nama target minimal 2 karakter.', 'error');
@@ -62,55 +67,108 @@ export function TabunganClient({ targets }: { targets: TargetTabunganView[] }) {
       return;
     }
 
+    const namaTrim = nama.trim();
+    const tanggalVal = tenggat || null;
+    const snapshot = localTargets;
+
+    const optimisTarget: TargetTabunganView = {
+      id: `temp-${Date.now()}`,
+      nama: namaTrim,
+      targetJumlah,
+      tanggal: tanggalVal,
+      terkumpul: 0,
+      kurang: targetJumlah,
+      persentase: 0,
+      tercapai: false,
+      setoran: [],
+    };
+
+    setLocalTargets((prev) => [...prev, optimisTarget]);
+    setNama('');
+    setTargetDigits('');
+    setTenggat('');
     setCreating(true);
+    pendingCountRef.current += 1;
+
     const res = await buatTargetTabungan({
-      nama: nama.trim(),
+      nama: namaTrim,
       target_jumlah: targetJumlah,
-      tanggal: tenggat || null,
+      tanggal: tanggalVal,
     });
+
+    pendingCountRef.current = Math.max(0, pendingCountRef.current - 1);
     setCreating(false);
 
     if (!res.ok) {
+      setLocalTargets(snapshot);
       showToast(res.message, 'error');
       return;
     }
 
-    setNama('');
-    setTargetDigits('');
-    setTenggat('');
     showToast(res.message, 'success');
   }
 
   async function handleDeposit(e: React.FormEvent) {
     e.preventDefault();
-    if (!depositTarget) return;
+    if (!depositTarget || depositing) return;
+    if (depositTarget.id.startsWith('temp-')) return;
+
     const jumlah = parseInt(depositDigits || '0', 10);
     if (jumlah <= 0) {
       showToast('Nominal setoran harus lebih dari 0.', 'error');
       return;
     }
 
+    const targetId = depositTarget.id;
+    const tanggalVal = depositDate;
+    const snapshot = localTargets;
+
+    setLocalTargets((prev) =>
+      prev.map((item) => {
+        if (item.id !== targetId) return item;
+        const terkumpul = item.terkumpul + jumlah;
+        const kurang = Math.max(0, item.targetJumlah - terkumpul);
+        const persentase =
+          item.targetJumlah > 0
+            ? Math.min(100, Math.round((terkumpul / item.targetJumlah) * 100))
+            : 0;
+        const tercapai = terkumpul >= item.targetJumlah;
+        const setoran = [
+          { id: `temp-${Date.now()}`, jumlah, tanggal: tanggalVal },
+          ...item.setoran,
+        ];
+        return { ...item, terkumpul, kurang, persentase, tercapai, setoran };
+      })
+    );
+
+    setDepositTarget(null);
+    setDepositDigits('');
     setDepositing(true);
+    pendingCountRef.current += 1;
+
     const res = await catatSetoranTabungan({
-      id_target: depositTarget.id,
+      id_target: targetId,
       jumlah,
-      tanggal: depositDate,
+      tanggal: tanggalVal,
     });
+
+    pendingCountRef.current = Math.max(0, pendingCountRef.current - 1);
     setDepositing(false);
 
     if (!res.ok) {
+      setLocalTargets(snapshot);
       showToast(res.message, 'error');
       return;
     }
 
-    setDepositTarget(null);
-    setDepositDigits('');
     showToast(res.message, 'success');
   }
 
   async function handleDelete(id: string) {
-    if (removingIds[id]) return;
+    if (id.startsWith('temp-')) return;
+    if (deleteLockRef.current[id]) return;
 
+    deleteLockRef.current[id] = true;
     const snapshot = localTargets;
     setDeletingId(null);
     setRemovingIds((prev) => ({ ...prev, [id]: true }));
@@ -124,7 +182,11 @@ export function TabunganClient({ targets }: { targets: TargetTabunganView[] }) {
       });
     }, 180);
 
+    pendingCountRef.current += 1;
     const res = await hapusTargetTabungan(id);
+    pendingCountRef.current = Math.max(0, pendingCountRef.current - 1);
+    delete deleteLockRef.current[id];
+
     if (!res.ok) {
       setRemovingIds((prev) => {
         const next = { ...prev };
@@ -204,6 +266,7 @@ export function TabunganClient({ targets }: { targets: TargetTabunganView[] }) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {localTargets.map((t) => {
             const isRemoving = Boolean(removingIds[t.id]);
+            const isTemp = t.id.startsWith('temp-');
             return (
               <article
                 key={t.id}
@@ -251,9 +314,10 @@ export function TabunganClient({ targets }: { targets: TargetTabunganView[] }) {
                   ) : (
                     <button
                       type="button"
+                      disabled={isTemp}
                       onClick={() => setDeletingId(t.id)}
                       aria-label={`Hapus target ${t.nama}`}
-                      className="p-2 rounded-xl border hover:opacity-80 active:scale-95 transition-all duration-150 cursor-pointer shrink-0"
+                      className="p-2 rounded-xl border hover:opacity-80 active:scale-95 transition-all duration-150 cursor-pointer shrink-0 disabled:opacity-40 disabled:pointer-events-none"
                       style={{ borderColor: 'var(--border)', color: 'var(--danger)' }}
                     >
                       <Trash size={16} />
@@ -287,6 +351,7 @@ export function TabunganClient({ targets }: { targets: TargetTabunganView[] }) {
                 <div className="flex items-center gap-2 pt-1">
                   <button
                     type="button"
+                    disabled={isTemp}
                     onClick={() => {
                       if (document.activeElement instanceof HTMLElement) {
                         document.activeElement.blur();
@@ -295,7 +360,7 @@ export function TabunganClient({ targets }: { targets: TargetTabunganView[] }) {
                       setDepositDigits('');
                       setDepositDate(getTodayISO());
                     }}
-                    className="fn-btn fn-btn-primary flex-1 text-xs py-2.5 active:scale-95 transition-transform"
+                    className="fn-btn fn-btn-primary flex-1 text-xs py-2.5 active:scale-95 transition-transform disabled:opacity-50 disabled:pointer-events-none"
                   >
                     <Plus size={16} weight="bold" />
                     <span>Setoran</span>
