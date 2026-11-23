@@ -1,7 +1,13 @@
 'use client';
 
-import React, { useState } from 'react';
-import { PiggyBank, Plus, Trash, ClockCounterClockwise, X } from '@phosphor-icons/react';
+import React, { useEffect, useState } from 'react';
+import {
+  PiggyBank,
+  Plus,
+  Trash,
+  ClockCounterClockwise,
+  X,
+} from '@phosphor-icons/react';
 import {
   buatTargetTabungan,
   hapusTargetTabungan,
@@ -24,6 +30,9 @@ export interface TargetTabunganView {
 
 export function TabunganClient({ targets }: { targets: TargetTabunganView[] }) {
   const { showToast } = useToast();
+  const [localTargets, setLocalTargets] = useState<TargetTabunganView[]>(targets);
+  const [removingIds, setRemovingIds] = useState<Record<string, boolean>>({});
+
   const [nama, setNama] = useState('');
   const [targetDigits, setTargetDigits] = useState('');
   const [tenggat, setTenggat] = useState('');
@@ -36,6 +45,10 @@ export function TabunganClient({ targets }: { targets: TargetTabunganView[] }) {
 
   const [historyTarget, setHistoryTarget] = useState<TargetTabunganView | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setLocalTargets(targets);
+  }, [targets]);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -96,12 +109,33 @@ export function TabunganClient({ targets }: { targets: TargetTabunganView[] }) {
   }
 
   async function handleDelete(id: string) {
-    const res = await hapusTargetTabungan(id);
+    if (removingIds[id]) return;
+
+    const snapshot = localTargets;
     setDeletingId(null);
+    setRemovingIds((prev) => ({ ...prev, [id]: true }));
+
+    window.setTimeout(() => {
+      setLocalTargets((prev) => prev.filter((item) => item.id !== id));
+      setRemovingIds((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+    }, 180);
+
+    const res = await hapusTargetTabungan(id);
     if (!res.ok) {
+      setRemovingIds((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      setLocalTargets(snapshot);
       showToast(res.message, 'error');
       return;
     }
+
     showToast(res.message, 'success');
   }
 
@@ -148,14 +182,18 @@ export function TabunganClient({ targets }: { targets: TargetTabunganView[] }) {
           />
         </div>
 
-        <button type="submit" disabled={creating} className="fn-btn fn-btn-primary w-full">
+        <button
+          type="submit"
+          disabled={creating}
+          className="fn-btn fn-btn-primary w-full active:scale-95 transition-transform"
+        >
           <Plus size={18} weight="bold" />
           <span>{creating ? 'Menyimpan...' : 'Buat target'}</span>
         </button>
       </form>
 
       {/* Kartu Kantong Tabungan */}
-      {targets.length === 0 ? (
+      {localTargets.length === 0 ? (
         <div className="fn-card p-8 text-center">
           <p className="fn-display text-lg font-semibold">Belum ada target tabungan</p>
           <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
@@ -164,109 +202,117 @@ export function TabunganClient({ targets }: { targets: TargetTabunganView[] }) {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {targets.map((t) => (
-            <article key={t.id} className="fn-card p-5 flex flex-col justify-between gap-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <span
-                    className="w-11 h-11 rounded-2xl inline-flex items-center justify-center shrink-0"
-                    style={{ backgroundColor: 'var(--primary-soft)', color: 'var(--primary)' }}
-                  >
-                    <PiggyBank size={24} weight="duotone" />
-                  </span>
-                  <div className="min-w-0">
-                    <h2 className="fn-display text-lg font-semibold truncate">{t.nama}</h2>
-                    {t.tanggal && (
-                      <p className="text-xs" style={{ color: 'var(--muted)' }}>
-                        Tenggat {formatTanggal(t.tanggal)}
-                      </p>
-                    )}
+          {localTargets.map((t) => {
+            const isRemoving = Boolean(removingIds[t.id]);
+            return (
+              <article
+                key={t.id}
+                className={`fn-card p-5 flex flex-col justify-between gap-4 transition-all duration-200 ${
+                  isRemoving ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span
+                      className="w-11 h-11 rounded-2xl inline-flex items-center justify-center shrink-0"
+                      style={{ backgroundColor: 'var(--primary-soft)', color: 'var(--primary)' }}
+                    >
+                      <PiggyBank size={24} weight="duotone" />
+                    </span>
+                    <div className="min-w-0">
+                      <h2 className="fn-display text-lg font-semibold truncate">{t.nama}</h2>
+                      {t.tanggal && (
+                        <p className="text-xs" style={{ color: 'var(--muted)' }}>
+                          Tenggat {formatTanggal(t.tanggal)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  {deletingId === t.id ? (
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(t.id)}
+                        className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white cursor-pointer active:scale-95 transition-transform"
+                        style={{ backgroundColor: 'var(--danger)' }}
+                      >
+                        Hapus
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeletingId(null)}
+                        className="px-2 py-1.5 rounded-lg text-xs font-semibold border cursor-pointer active:scale-95 transition-transform"
+                        style={{ borderColor: 'var(--border)' }}
+                      >
+                        Batal
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setDeletingId(t.id)}
+                      aria-label={`Hapus target ${t.nama}`}
+                      className="p-2 rounded-xl border hover:opacity-80 active:scale-95 transition-all duration-150 cursor-pointer shrink-0"
+                      style={{ borderColor: 'var(--border)', color: 'var(--danger)' }}
+                    >
+                      <Trash size={16} />
+                    </button>
+                  )}
+                </div>
+
+                <div>
+                  <p className="fn-display text-2xl font-bold fn-num">
+                    {formatRupiah(t.terkumpul)}{' '}
+                    <span className="text-xs font-normal" style={{ color: 'var(--muted)' }}>
+                      dari {formatRupiah(t.targetJumlah)}
+                    </span>
+                  </p>
+
+                  <div className="h-2.5 rounded-full overflow-hidden mt-2.5" style={{ backgroundColor: 'var(--primary-soft)' }}>
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{ width: `${t.persentase}%`, backgroundColor: 'var(--primary)' }}
+                    />
+                  </div>
+
+                  <div className="flex justify-between text-xs mt-1.5" style={{ color: 'var(--muted)' }}>
+                    <strong style={{ color: 'var(--ink)' }}>{t.persentase}% terkumpul</strong>
+                    <span className="fn-num">
+                      {t.tercapai ? 'Target tercapai!' : `Kurang ${formatRupiah(t.kurang)}`}
+                    </span>
                   </div>
                 </div>
 
-                {deletingId === t.id ? (
-                  <div className="flex items-center gap-1 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(t.id)}
-                      className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white cursor-pointer"
-                      style={{ backgroundColor: 'var(--danger)' }}
-                    >
-                      Hapus
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDeletingId(null)}
-                      className="px-2 py-1.5 rounded-lg text-xs font-semibold border cursor-pointer"
-                      style={{ borderColor: 'var(--border)' }}
-                    >
-                      Batal
-                    </button>
-                  </div>
-                ) : (
+                <div className="flex items-center gap-2 pt-1">
                   <button
                     type="button"
-                    onClick={() => setDeletingId(t.id)}
-                    aria-label={`Hapus target ${t.nama}`}
-                    className="p-2 rounded-xl border hover:opacity-80 cursor-pointer shrink-0"
-                    style={{ borderColor: 'var(--border)', color: 'var(--danger)' }}
+                    onClick={() => {
+                      if (document.activeElement instanceof HTMLElement) {
+                        document.activeElement.blur();
+                      }
+                      setDepositTarget(t);
+                      setDepositDigits('');
+                      setDepositDate(getTodayISO());
+                    }}
+                    className="fn-btn fn-btn-primary flex-1 text-xs py-2.5 active:scale-95 transition-transform"
                   >
-                    <Trash size={16} />
+                    <Plus size={16} weight="bold" />
+                    <span>Setoran</span>
                   </button>
-                )}
-              </div>
 
-              <div>
-                <p className="fn-display text-2xl font-bold fn-num">
-                  {formatRupiah(t.terkumpul)}{' '}
-                  <span className="text-xs font-normal" style={{ color: 'var(--muted)' }}>
-                    dari {formatRupiah(t.targetJumlah)}
-                  </span>
-                </p>
-
-                <div className="h-2.5 rounded-full overflow-hidden mt-2.5" style={{ backgroundColor: 'var(--primary-soft)' }}>
-                  <div
-                    className="h-full rounded-full transition-all"
-                    style={{ width: `${t.persentase}%`, backgroundColor: 'var(--primary)' }}
-                  />
+                  <button
+                    type="button"
+                    onClick={() => setHistoryTarget(t)}
+                    className="fn-btn fn-btn-ghost text-xs py-2.5 px-3.5 active:scale-95 transition-transform"
+                  >
+                    <ClockCounterClockwise size={16} />
+                    <span>Riwayat ({t.setoran.length})</span>
+                  </button>
                 </div>
-
-                <div className="flex justify-between text-xs mt-1.5" style={{ color: 'var(--muted)' }}>
-                  <strong style={{ color: 'var(--ink)' }}>{t.persentase}% terkumpul</strong>
-                  <span className="fn-num">
-                    {t.tercapai ? 'Target tercapai!' : `Kurang ${formatRupiah(t.kurang)}`}
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (document.activeElement instanceof HTMLElement) {
-                      document.activeElement.blur();
-                    }
-                    setDepositTarget(t);
-                    setDepositDigits('');
-                    setDepositDate(getTodayISO());
-                  }}
-                  className="fn-btn fn-btn-primary flex-1 text-xs py-2.5"
-                >
-                  <Plus size={16} weight="bold" />
-                  <span>Setoran</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setHistoryTarget(t)}
-                  className="fn-btn fn-btn-ghost text-xs py-2.5 px-3.5"
-                >
-                  <ClockCounterClockwise size={16} />
-                  <span>Riwayat ({t.setoran.length})</span>
-                </button>
-              </div>
-            </article>
-          ))}
+              </article>
+            );
+          })}
         </div>
       )}
 
@@ -320,7 +366,11 @@ export function TabunganClient({ targets }: { targets: TargetTabunganView[] }) {
                 />
               </div>
 
-              <button type="submit" disabled={depositing} className="fn-btn fn-btn-primary w-full mt-1">
+              <button
+                type="submit"
+                disabled={depositing}
+                className="fn-btn fn-btn-primary w-full mt-1 active:scale-95 transition-transform"
+              >
                 {depositing ? 'Menyimpan...' : 'Simpan setoran'}
               </button>
             </form>
