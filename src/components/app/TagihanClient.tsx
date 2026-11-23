@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Plus, Trash, ArrowsClockwise } from '@phosphor-icons/react';
 import { buatTagihan, hapusTagihan, toggleStatusTagihan } from '@/lib/actions/tagihan';
 import { useToast } from '@/components/ui/ToastProvider';
@@ -18,11 +18,19 @@ export interface TagihanViewItem {
 
 export function TagihanClient({ items }: { items: TagihanViewItem[] }) {
   const { showToast } = useToast();
+  const [localItems, setLocalItems] = useState<TagihanViewItem[]>(items);
+  const [togglingIds, setTogglingIds] = useState<Record<string, boolean>>({});
+  const [deletingIds, setDeletingIds] = useState<Record<string, boolean>>({});
+
   const [nama, setNama] = useState('');
   const [jumlahDigits, setJumlahDigits] = useState('');
   const [jatuhTempo, setJatuhTempo] = useState('');
   const [berulang, setBerulang] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setLocalItems(items);
+  }, [items]);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
@@ -57,16 +65,56 @@ export function TagihanClient({ items }: { items: TagihanViewItem[] }) {
     showToast(res.message, 'success');
   }
 
-  async function handleToggle(id: string, aktif: boolean) {
-    const res = await toggleStatusTagihan(id, aktif);
-    if (!res.ok) showToast(res.message, 'error');
-    else showToast(res.message, 'success');
+  async function handleToggle(id: string, targetAktif: boolean) {
+    if (togglingIds[id]) return;
+
+    const prevAktif = !targetAktif;
+    setTogglingIds((prev) => ({ ...prev, [id]: true }));
+    setLocalItems((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, aktif: targetAktif } : item))
+    );
+
+    const res = await toggleStatusTagihan(id, targetAktif);
+
+    setTogglingIds((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+
+    if (!res.ok) {
+      setLocalItems((prev) =>
+        prev.map((item) => (item.id === id ? { ...item, aktif: prevAktif } : item))
+      );
+      showToast(res.message, 'error');
+      return;
+    }
+
+    showToast(res.message, 'success');
   }
 
   async function handleDelete(id: string) {
+    if (deletingIds[id]) return;
+
+    const snapshot = localItems;
+    setDeletingIds((prev) => ({ ...prev, [id]: true }));
+    setLocalItems((prev) => prev.filter((item) => item.id !== id));
+
     const res = await hapusTagihan(id);
-    if (!res.ok) showToast(res.message, 'error');
-    else showToast(res.message, 'success');
+
+    setDeletingIds((prev) => {
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+
+    if (!res.ok) {
+      setLocalItems(snapshot);
+      showToast(res.message, 'error');
+      return;
+    }
+
+    showToast(res.message, 'success');
   }
 
   return (
@@ -123,15 +171,28 @@ export function TagihanClient({ items }: { items: TagihanViewItem[] }) {
             <span>Bulanan</span>
           </label>
 
-          <button type="submit" disabled={saving} className="fn-btn fn-btn-primary">
-            <Plus size={18} weight="bold" />
-            <span>Tambah</span>
+          <button
+            type="submit"
+            disabled={saving}
+            className="fn-btn fn-btn-primary active:scale-95 transition-transform"
+          >
+            {saving ? (
+              <>
+                <ArrowsClockwise size={18} weight="bold" className="animate-spin" />
+                <span>Menyimpan...</span>
+              </>
+            ) : (
+              <>
+                <Plus size={18} weight="bold" />
+                <span>Tambah</span>
+              </>
+            )}
           </button>
         </div>
       </form>
 
       {/* Daftar Tagihan */}
-      {items.length === 0 ? (
+      {localItems.length === 0 ? (
         <div className="fn-card p-8 text-center">
           <p className="fn-display text-lg font-semibold">Belum ada pengingat tagihan</p>
           <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
@@ -141,73 +202,89 @@ export function TagihanClient({ items }: { items: TagihanViewItem[] }) {
       ) : (
         <div className="fn-card overflow-hidden">
           <ul className="divide-y" style={{ borderColor: 'var(--border)' }}>
-            {items.map((t) => (
-              <li key={t.id} className="p-4 sm:px-5 flex items-center justify-between gap-3 flex-wrap">
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="font-semibold text-sm">{t.nama}</p>
-                    {t.berulang && (
-                      <span
-                        className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full"
-                        style={{ backgroundColor: 'var(--primary-soft)', color: 'var(--primary)' }}
-                      >
-                        <ArrowsClockwise size={12} />
-                        <span>Bulanan</span>
-                      </span>
-                    )}
+            {localItems.map((t) => {
+              const isToggling = Boolean(togglingIds[t.id]);
+              return (
+                <li
+                  key={t.id}
+                  className="p-4 sm:px-5 flex items-center justify-between gap-3 flex-wrap transition-opacity duration-200"
+                  style={{ opacity: t.aktif ? 1 : 0.78 }}
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-sm">{t.nama}</p>
+                      {t.berulang && (
+                        <span
+                          className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full"
+                          style={{ backgroundColor: 'var(--primary-soft)', color: 'var(--primary)' }}
+                        >
+                          <ArrowsClockwise size={12} />
+                          <span>Bulanan</span>
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs mt-0.5 fn-num" style={{ color: 'var(--muted)' }}>
+                      Jatuh tempo {formatTanggal(t.tanggal_jatuh_tempo)}
+                      {t.jumlah ? ` • ${formatRupiah(t.jumlah)}` : ''}
+                    </p>
                   </div>
-                  <p className="text-xs mt-0.5 fn-num" style={{ color: 'var(--muted)' }}>
-                    Jatuh tempo {formatTanggal(t.tanggal_jatuh_tempo)}
-                    {t.jumlah ? ` • ${formatRupiah(t.jumlah)}` : ''}
-                  </p>
-                </div>
 
-                <div className="flex items-center gap-2.5">
-                  <span
-                    className="text-xs font-semibold px-3 py-1 rounded-full fn-num"
-                    style={{
-                      backgroundColor: !t.aktif
-                        ? 'var(--bg)'
-                        : t.selisihHari <= 3
-                          ? 'var(--accent-soft)'
-                          : 'var(--primary-soft)',
-                      color: !t.aktif
-                        ? 'var(--muted)'
-                        : t.selisihHari <= 3
-                          ? 'var(--accent-strong)'
-                          : 'var(--primary)',
-                    }}
-                  >
-                    {!t.aktif
-                      ? 'Nonaktif'
-                      : t.selisihHari < 0
-                        ? 'Lewat tempo'
-                        : t.selisihHari === 0
-                          ? 'Hari ini'
-                          : `${t.selisihHari} hari lagi`}
-                  </span>
+                  <div className="flex items-center gap-2 sm:gap-2.5">
+                    <span
+                      className="text-xs font-semibold px-3 py-1 rounded-full fn-num transition-colors duration-200"
+                      style={{
+                        backgroundColor: !t.aktif
+                          ? 'var(--bg)'
+                          : t.selisihHari <= 3
+                            ? 'var(--accent-soft)'
+                            : 'var(--primary-soft)',
+                        color: !t.aktif
+                          ? 'var(--muted)'
+                          : t.selisihHari <= 3
+                            ? 'var(--accent-strong)'
+                            : 'var(--primary)',
+                      }}
+                    >
+                      {!t.aktif
+                        ? 'Nonaktif'
+                        : t.selisihHari < 0
+                          ? 'Lewat tempo'
+                          : t.selisihHari === 0
+                            ? 'Hari ini'
+                            : `${t.selisihHari} hari lagi`}
+                    </span>
 
-                  <button
-                    type="button"
-                    onClick={() => handleToggle(t.id, !t.aktif)}
-                    className="px-3 py-1.5 rounded-full text-xs font-semibold border cursor-pointer"
-                    style={{ borderColor: 'var(--border-strong)' }}
-                  >
-                    {t.aktif ? 'Jeda' : 'Aktifkan'}
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => handleToggle(t.id, !t.aktif)}
+                      disabled={isToggling}
+                      aria-busy={isToggling}
+                      className="inline-flex items-center justify-center gap-1.5 min-w-[86px] px-3 py-1.5 rounded-full text-xs font-semibold border cursor-pointer active:scale-95 transition-all duration-150 disabled:opacity-75"
+                      style={{
+                        backgroundColor: t.aktif ? 'var(--surface)' : 'var(--primary-soft)',
+                        borderColor: t.aktif ? 'var(--border-strong)' : 'var(--primary)',
+                        color: t.aktif ? 'inherit' : 'var(--primary)',
+                      }}
+                    >
+                      {isToggling && (
+                        <ArrowsClockwise size={13} weight="bold" className="animate-spin shrink-0" />
+                      )}
+                      <span>{t.aktif ? 'Jeda' : 'Aktifkan'}</span>
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(t.id)}
-                    aria-label={`Hapus tagihan ${t.nama}`}
-                    className="p-2 rounded-xl border hover:opacity-80 cursor-pointer"
-                    style={{ borderColor: 'var(--border)', color: 'var(--danger)' }}
-                  >
-                    <Trash size={16} />
-                  </button>
-                </div>
-              </li>
-            ))}
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(t.id)}
+                      aria-label={`Hapus tagihan ${t.nama}`}
+                      className="p-2 rounded-xl border hover:opacity-80 active:scale-95 transition-all duration-150 cursor-pointer"
+                      style={{ borderColor: 'var(--border)', color: 'var(--danger)' }}
+                    >
+                      <Trash size={16} />
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}

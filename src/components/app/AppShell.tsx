@@ -119,6 +119,7 @@ export default function AppShell({
 
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const notifPopupRef = useRef<HTMLDivElement>(null);
+  const mobileNotifSheetRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const routes = isAdmin
@@ -223,10 +224,13 @@ export default function AppShell({
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (profileMenuRef.current && !profileMenuRef.current.contains(target)) {
         setProfileMenuOpen(false);
       }
-      if (notifPopupRef.current && !notifPopupRef.current.contains(e.target as Node)) {
+      const inDesktopNotif = notifPopupRef.current && notifPopupRef.current.contains(target);
+      const inMobileNotif = mobileNotifSheetRef.current && mobileNotifSheetRef.current.contains(target);
+      if (!inDesktopNotif && !inMobileNotif) {
         setNotifPopupOpen(false);
       }
     }
@@ -705,6 +709,7 @@ export default function AppShell({
           }}
         >
           <div
+            ref={mobileNotifSheetRef}
             className="w-full rounded-t-3xl border-t shadow-2xl max-h-[82dvh] flex flex-col overflow-hidden"
             style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
           >
@@ -799,8 +804,8 @@ export default function AppShell({
                 href="/notifikasi"
                 prefetch={true}
                 onClick={() => {
-                  setNotifPopupOpen(false);
                   startNav('/notifikasi');
+                  setNotifPopupOpen(false);
                 }}
                 className="text-xs font-semibold hover:underline"
                 style={{ color: 'var(--primary)' }}
