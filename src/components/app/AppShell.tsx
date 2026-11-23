@@ -23,6 +23,8 @@ import {
   Check,
   Checks,
   Warning,
+  CaretLeft,
+  CaretRight,
 } from '@phosphor-icons/react';
 import { keluarAkun } from '@/lib/actions/auth';
 import {
@@ -92,6 +94,8 @@ const PAGE_TITLES: Record<string, string> = {
   '/admin/kategori': 'Kategori Bawaan',
 };
 
+const SIDEBAR_STORAGE_KEY = 'finara-sidebar-collapsed';
+
 function getInisial(nama: string): string {
   const parts = nama.trim().split(/\s+/);
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
@@ -114,12 +118,36 @@ export default function AppShell({
   const [moreOpen, setMoreOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [notifPopupOpen, setNotifPopupOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [pendingPath, setPendingPath] = useState<string | null>(null);
   const [localNotifs, setLocalNotifs] = useState<Notifikasi[]>(notifications);
 
   const profileMenuRef = useRef<HTMLDivElement>(null);
   const notifPopupRef = useRef<HTMLDivElement>(null);
   const mobileNotifSheetRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(SIDEBAR_STORAGE_KEY);
+      if (saved === 'true') {
+        setSidebarCollapsed(true);
+      }
+    } catch {
+      // Abaikan jika storage diblokir
+    }
+  }, []);
+
+  const toggleSidebar = useCallback(() => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(SIDEBAR_STORAGE_KEY, String(next));
+      } catch {
+        // Abaikan jika storage diblokir
+      }
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     const routes = isAdmin
@@ -312,35 +340,56 @@ export default function AppShell({
       {/* Desktop Sidebar */}
       <aside
         aria-label="Navigasi aplikasi"
-        onMouseLeave={() => setProfileMenuOpen(false)}
-        className={`hidden md:flex flex-col fixed inset-y-0 left-0 z-40 border-r transition-all duration-300 ${
-          profileMenuOpen ? 'w-[232px]' : 'w-[72px] hover:w-[232px] focus-within:w-[232px]'
-        } group`}
+        className={`hidden md:flex flex-col fixed inset-y-0 left-0 z-40 border-r transition-[width] duration-300 ${
+          sidebarCollapsed ? 'w-[72px]' : 'w-[232px]'
+        }`}
         style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
       >
         <div className="p-3.5 flex flex-col gap-4 overflow-y-auto overflow-x-hidden flex-1">
-          <Link
-            href={isAdmin ? '/admin' : '/dashboard'}
-            prefetch={true}
-            onClick={() => startNav(isAdmin ? '/admin' : '/dashboard')}
-            className={`fn-display text-2xl font-bold py-1 inline-flex items-baseline whitespace-nowrap transition-all duration-300 ${
-              profileMenuOpen
-                ? 'px-3'
-                : 'pl-[18px] pr-3 group-hover:px-3 group-focus-within:px-3'
-            }`}
-          >
-            <span>f</span>
-            <span
-              className={`overflow-hidden transition-all duration-200 ${
-                profileMenuOpen
-                  ? 'max-w-[100px] opacity-100'
-                  : 'max-w-0 opacity-0 group-hover:max-w-[100px] group-hover:opacity-100 group-focus-within:max-w-[100px] group-focus-within:opacity-100'
-              }`}
-            >
-              inara
-            </span>
-            <span style={{ color: 'var(--accent)' }}>.</span>
-          </Link>
+          {sidebarCollapsed ? (
+            <div className="h-9 flex items-center justify-center">
+              <button
+                type="button"
+                onClick={toggleSidebar}
+                aria-label="Perluas menu samping"
+                title="Perluas menu"
+                className="w-11 h-9 rounded-xl border inline-flex items-center justify-center gap-0.5 cursor-pointer transition-all hover:opacity-85 active:scale-95"
+                style={{ backgroundColor: 'var(--bg)', borderColor: 'var(--border)' }}
+              >
+                <span className="fn-display text-lg font-bold leading-none">
+                  f<span style={{ color: 'var(--accent)' }}>.</span>
+                </span>
+                <CaretRight size={13} weight="bold" style={{ color: 'var(--muted)' }} />
+              </button>
+            </div>
+          ) : (
+            <div className="h-9 flex items-center justify-between pl-3 pr-0.5">
+              <Link
+                href={isAdmin ? '/admin' : '/dashboard'}
+                prefetch={true}
+                onClick={() => startNav(isAdmin ? '/admin' : '/dashboard')}
+                className="fn-display text-2xl font-bold inline-flex items-baseline whitespace-nowrap"
+              >
+                <span>finara</span>
+                <span style={{ color: 'var(--accent)' }}>.</span>
+              </Link>
+
+              <button
+                type="button"
+                onClick={toggleSidebar}
+                aria-label="Ciutkan menu samping"
+                title="Ciutkan menu"
+                className="w-8 h-8 rounded-xl border inline-flex items-center justify-center cursor-pointer transition-all hover:opacity-85 active:scale-95 shrink-0"
+                style={{
+                  backgroundColor: 'var(--bg)',
+                  borderColor: 'var(--border)',
+                  color: 'var(--muted)',
+                }}
+              >
+                <CaretLeft size={15} weight="bold" />
+              </button>
+            </div>
+          )}
 
           <nav className="flex flex-col gap-1">
             {navItems.map((item) => {
@@ -351,6 +400,8 @@ export default function AppShell({
                   key={item.href}
                   href={item.href}
                   prefetch={true}
+                  title={sidebarCollapsed ? item.label : undefined}
+                  aria-label={item.label}
                   onMouseEnter={() => router.prefetch(item.href)}
                   onClick={() => startNav(item.href)}
                   className="flex items-center gap-3.5 px-3 py-2 rounded-xl font-medium text-sm whitespace-nowrap transition-all active:scale-95"
@@ -363,9 +414,7 @@ export default function AppShell({
                   <Icon size={20} weight={active ? 'fill' : 'regular'} className="shrink-0" />
                   <span
                     className={`transition-opacity duration-200 ${
-                      profileMenuOpen
-                        ? 'opacity-100'
-                        : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'
+                      sidebarCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'
                     }`}
                   >
                     {item.label}
@@ -381,9 +430,17 @@ export default function AppShell({
                 <Link
                   href="/notifikasi"
                   prefetch={true}
+                  title={
+                    sidebarCollapsed
+                      ? liveUnreadCount > 0
+                        ? `Notifikasi (${liveUnreadCount})`
+                        : 'Notifikasi'
+                      : undefined
+                  }
+                  aria-label="Notifikasi"
                   onMouseEnter={() => router.prefetch('/notifikasi')}
                   onClick={() => startNav('/notifikasi')}
-                  className="relative flex items-center gap-3.5 px-3 py-2 rounded-xl text-sm font-medium whitespace-nowrap active:scale-95 transition-transform"
+                  className="relative flex items-center gap-3.5 px-3 py-2 rounded-xl text-sm font-medium whitespace-nowrap active:scale-95 transition-all"
                   style={{
                     backgroundColor: currentPath === '/notifikasi' ? 'var(--primary-soft)' : 'transparent',
                     color: currentPath === '/notifikasi' ? 'var(--primary)' : 'var(--muted)',
@@ -401,9 +458,7 @@ export default function AppShell({
                   </span>
                   <span
                     className={`transition-opacity duration-200 flex items-center gap-2 ${
-                      profileMenuOpen
-                        ? 'opacity-100'
-                        : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'
+                      sidebarCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'
                     }`}
                   >
                     <span>Notifikasi</span>
@@ -430,7 +485,7 @@ export default function AppShell({
         >
           {profileMenuOpen && (
             <div
-              className="absolute bottom-[calc(100%+8px)] left-3 right-3 rounded-2xl border p-2 shadow-xl z-50 flex flex-col gap-1"
+              className="absolute bottom-[calc(100%+8px)] left-3 w-[208px] rounded-2xl border p-2 shadow-xl z-50 flex flex-col gap-1"
               style={{ backgroundColor: 'var(--surface)', borderColor: 'var(--border)' }}
             >
               <div className="px-3 py-1.5 border-b mb-0.5" style={{ borderColor: 'var(--border)' }}>
@@ -481,7 +536,8 @@ export default function AppShell({
           <button
             type="button"
             onClick={() => setProfileMenuOpen((prev) => !prev)}
-            className="w-full flex items-center gap-2.5 p-1.5 rounded-2xl border text-left cursor-pointer transition-all active:scale-[0.98]"
+            title={sidebarCollapsed ? `${akun.nama} (${labelSubProfil})` : undefined}
+            className="w-full flex items-center gap-2.5 p-1.5 rounded-2xl border text-left cursor-pointer transition-all active:scale-[0.98] overflow-hidden"
             style={{
               backgroundColor: profileMenuOpen ? 'var(--primary-soft)' : 'var(--bg)',
               borderColor: profileMenuOpen ? 'var(--primary)' : 'var(--border)',
@@ -496,9 +552,7 @@ export default function AppShell({
 
             <div
               className={`min-w-0 transition-opacity duration-200 ${
-                profileMenuOpen
-                  ? 'opacity-100'
-                  : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'
+                sidebarCollapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'
               }`}
             >
               <p className="text-xs font-semibold truncate">{akun.nama}</p>
@@ -511,7 +565,11 @@ export default function AppShell({
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 md:pl-[72px] flex flex-col min-w-0 pb-24 md:pb-8">
+      <div
+        className={`flex-1 flex flex-col min-w-0 pb-24 md:pb-8 transition-[padding] duration-300 ${
+          sidebarCollapsed ? 'md:pl-[72px]' : 'md:pl-[232px]'
+        }`}
+      >
         {/* Topbar */}
         <header
           className="sticky top-0 z-30 border-b px-3 sm:px-6 lg:px-8 h-14 sm:h-16 flex items-center justify-between gap-2 max-w-full"
