@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Plus, Trash, ArrowsClockwise } from '@phosphor-icons/react';
 import { buatTagihan, hapusTagihan, toggleStatusTagihan } from '@/lib/actions/tagihan';
 import { useToast } from '@/components/ui/ToastProvider';
@@ -16,11 +16,17 @@ export interface TagihanViewItem {
   selisihHari: number;
 }
 
+const TOGGLE_COOLDOWN_MS = 1000;
+
 export function TagihanClient({ items }: { items: TagihanViewItem[] }) {
   const { showToast } = useToast();
   const [localItems, setLocalItems] = useState<TagihanViewItem[]>(items);
   const [togglingIds, setTogglingIds] = useState<Record<string, boolean>>({});
-  const [deletingIds, setDeletingIds] = useState<Record<string, boolean>>({});
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [removingIds, setRemovingIds] = useState<Record<string, boolean>>({});
+
+  const toggleLockRef = useRef<Record<string, boolean>>({});
+  const deleteLockRef = useRef<Record<string, boolean>>({});
 
   const [nama, setNama] = useState('');
   const [jumlahDigits, setJumlahDigits] = useState('');
@@ -29,11 +35,14 @@ export function TagihanClient({ items }: { items: TagihanViewItem[] }) {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
+    if (Object.keys(toggleLockRef.current).length > 0) return;
+    if (Object.keys(deleteLockRef.current).length > 0) return;
     setLocalItems(items);
   }, [items]);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
+    if (saving) return;
     if (nama.trim().length < 2) {
       showToast('Nama tagihan minimal 2 karakter.', 'error');
       return;
@@ -66,9 +75,11 @@ export function TagihanClient({ items }: { items: TagihanViewItem[] }) {
   }
 
   async function handleToggle(id: string, targetAktif: boolean) {
-    if (togglingIds[id]) return;
+    if (toggleLockRef.current[id]) return;
 
+    toggleLockRef.current[id] = true;
     const prevAktif = !targetAktif;
+
     setTogglingIds((prev) => ({ ...prev, [id]: true }));
     setLocalItems((prev) =>
       prev.map((item) => (item.id === id ? { ...item, aktif: targetAktif } : item))
@@ -76,13 +87,13 @@ export function TagihanClient({ items }: { items: TagihanViewItem[] }) {
 
     const res = await toggleStatusTagihan(id, targetAktif);
 
-    setTogglingIds((prev) => {
-      const next = { ...prev };
-      delete next[id];
-      return next;
-    });
-
     if (!res.ok) {
+      delete toggleLockRef.current[id];
+      setTogglingIds((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
       setLocalItems((prev) =>
         prev.map((item) => (item.id === id ? { ...item, aktif: prevAktif } : item))
       );
@@ -91,24 +102,43 @@ export function TagihanClient({ items }: { items: TagihanViewItem[] }) {
     }
 
     showToast(res.message, 'success');
+
+    window.setTimeout(() => {
+      delete toggleLockRef.current[id];
+      setTogglingIds((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+    }, TOGGLE_COOLDOWN_MS);
   }
 
   async function handleDelete(id: string) {
-    if (deletingIds[id]) return;
+    if (deleteLockRef.current[id]) return;
 
+    deleteLockRef.current[id] = true;
     const snapshot = localItems;
-    setDeletingIds((prev) => ({ ...prev, [id]: true }));
-    setLocalItems((prev) => prev.filter((item) => item.id !== id));
+    setConfirmDeleteId(null);
+    setRemovingIds((prev) => ({ ...prev, [id]: true }));
+
+    window.setTimeout(() => {
+      setLocalItems((prev) => prev.filter((item) => item.id !== id));
+      setRemovingIds((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+    }, 180);
 
     const res = await hapusTagihan(id);
-
-    setDeletingIds((prev) => {
-      const next = { ...prev };
-      delete next[id];
-      return next;
-    });
+    delete deleteLockRef.current[id];
 
     if (!res.ok) {
+      setRemovingIds((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
       setLocalItems(snapshot);
       showToast(res.message, 'error');
       return;
@@ -176,17 +206,8 @@ export function TagihanClient({ items }: { items: TagihanViewItem[] }) {
             disabled={saving}
             className="fn-btn fn-btn-primary active:scale-95 transition-transform"
           >
-            {saving ? (
-              <>
-                <ArrowsClockwise size={18} weight="bold" className="animate-spin" />
-                <span>Menyimpan...</span>
-              </>
-            ) : (
-              <>
-                <Plus size={18} weight="bold" />
-                <span>Tambah</span>
-              </>
-            )}
+            <Plus size={18} weight="bold" />
+            <span>{saving ? 'Menyimpan...' : 'Tambah'}</span>
           </button>
         </div>
       </form>
@@ -204,11 +225,14 @@ export function TagihanClient({ items }: { items: TagihanViewItem[] }) {
           <ul className="divide-y" style={{ borderColor: 'var(--border)' }}>
             {localItems.map((t) => {
               const isToggling = Boolean(togglingIds[t.id]);
+              const isRemoving = Boolean(removingIds[t.id]);
               return (
                 <li
                   key={t.id}
-                  className="p-4 sm:px-5 flex items-center justify-between gap-3 flex-wrap transition-opacity duration-200"
-                  style={{ opacity: t.aktif ? 1 : 0.78 }}
+                  className={`p-4 sm:px-5 flex items-center justify-between gap-3 flex-wrap transition-all duration-200 ${
+                    isRemoving ? 'opacity-0 scale-[0.98] pointer-events-none' : 'scale-100'
+                  }`}
+                  style={{ opacity: isRemoving ? 0 : t.aktif ? 1 : 0.8 }}
                 >
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
@@ -231,7 +255,7 @@ export function TagihanClient({ items }: { items: TagihanViewItem[] }) {
 
                   <div className="flex items-center gap-2 sm:gap-2.5">
                     <span
-                      className="text-xs font-semibold px-3 py-1 rounded-full fn-num transition-colors duration-200"
+                      className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-md fn-num select-none"
                       style={{
                         backgroundColor: !t.aktif
                           ? 'var(--bg)'
@@ -245,42 +269,61 @@ export function TagihanClient({ items }: { items: TagihanViewItem[] }) {
                             : 'var(--primary)',
                       }}
                     >
-                      {!t.aktif
-                        ? 'Nonaktif'
-                        : t.selisihHari < 0
-                          ? 'Lewat tempo'
-                          : t.selisihHari === 0
-                            ? 'Hari ini'
-                            : `${t.selisihHari} hari lagi`}
+                      <span>
+                        {!t.aktif
+                          ? 'Dijeda'
+                          : t.selisihHari < 0
+                            ? 'Lewat tempo'
+                            : t.selisihHari === 0
+                              ? 'Hari ini'
+                              : `${t.selisihHari} hari lagi`}
+                      </span>
                     </span>
 
                     <button
                       type="button"
                       onClick={() => handleToggle(t.id, !t.aktif)}
                       disabled={isToggling}
-                      aria-busy={isToggling}
-                      className="inline-flex items-center justify-center gap-1.5 min-w-[86px] px-3 py-1.5 rounded-full text-xs font-semibold border cursor-pointer active:scale-95 transition-all duration-150 disabled:opacity-75"
+                      className="inline-flex items-center justify-center min-w-[82px] px-3 py-1.5 rounded-full text-xs font-semibold border cursor-pointer active:scale-95 transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
                       style={{
                         backgroundColor: t.aktif ? 'var(--surface)' : 'var(--primary-soft)',
                         borderColor: t.aktif ? 'var(--border-strong)' : 'var(--primary)',
                         color: t.aktif ? 'inherit' : 'var(--primary)',
                       }}
                     >
-                      {isToggling && (
-                        <ArrowsClockwise size={13} weight="bold" className="animate-spin shrink-0" />
-                      )}
                       <span>{t.aktif ? 'Jeda' : 'Aktifkan'}</span>
                     </button>
 
-                    <button
-                      type="button"
-                      onClick={() => handleDelete(t.id)}
-                      aria-label={`Hapus tagihan ${t.nama}`}
-                      className="p-2 rounded-xl border hover:opacity-80 active:scale-95 transition-all duration-150 cursor-pointer"
-                      style={{ borderColor: 'var(--border)', color: 'var(--danger)' }}
-                    >
-                      <Trash size={16} />
-                    </button>
+                    {confirmDeleteId === t.id ? (
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(t.id)}
+                          className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white cursor-pointer active:scale-95 transition-transform"
+                          style={{ backgroundColor: 'var(--danger)' }}
+                        >
+                          Hapus
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmDeleteId(null)}
+                          className="px-2 py-1.5 rounded-lg text-xs font-semibold border cursor-pointer active:scale-95 transition-transform"
+                          style={{ borderColor: 'var(--border)' }}
+                        >
+                          Batal
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDeleteId(t.id)}
+                        aria-label={`Hapus tagihan ${t.nama}`}
+                        className="p-2 rounded-xl border hover:opacity-80 active:scale-95 transition-all duration-150 cursor-pointer"
+                        style={{ borderColor: 'var(--border)', color: 'var(--danger)' }}
+                      >
+                        <Trash size={16} />
+                      </button>
+                    )}
                   </div>
                 </li>
               );
