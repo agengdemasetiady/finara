@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Plus, Trash, Warning } from '@phosphor-icons/react';
 import { simpanAnggaran, hapusAnggaran } from '@/lib/actions/anggaran';
 import { useToast } from '@/components/ui/ToastProvider';
@@ -21,6 +21,22 @@ export interface AnggaranItemView {
   status: StatusAnggaran;
 }
 
+export interface ExpenseCategoryOption {
+  id: string;
+  nama: string;
+  ikon?: string;
+  warna?: string;
+  terpakai?: number;
+}
+
+function hitungProgresLokal(batas: number, terpakai: number) {
+  const sisa = batas - terpakai;
+  const persentase = batas > 0 ? Math.round((terpakai / batas) * 100) : 0;
+  const status: StatusAnggaran =
+    persentase >= 100 ? 'terlampaui' : persentase >= 80 ? 'hampir_habis' : 'aman';
+  return { batas, terpakai, sisa, persentase, status };
+}
+
 export function AnggaranClient({
   bulan,
   tahun,
@@ -30,16 +46,28 @@ export function AnggaranClient({
   bulan: number;
   tahun: number;
   items: AnggaranItemView[];
-  expenseCategories: Array<{ id: string; nama: string }>;
+  expenseCategories: ExpenseCategoryOption[];
 }) {
   const { showToast } = useToast();
+  const [localItems, setLocalItems] = useState<AnggaranItemView[]>(items);
+  const [removingIds, setRemovingIds] = useState<Record<string, boolean>>({});
+  const pendingCountRef = useRef(0);
+  const deleteLockRef = useRef<Record<string, boolean>>({});
+
   const [selectedKat, setSelectedKat] = useState(expenseCategories[0]?.id || '');
   const [batasDigits, setBatasDigits] = useState('');
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (pendingCountRef.current > 0) return;
+    setLocalItems(items);
+  }, [items]);
+
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
+    if (saving) return;
+
     const batas = parseInt(batasDigits || '0', 10);
     if (!selectedKat) {
       showToast('Pilih kategori pengeluaran.', 'error');
@@ -50,31 +78,88 @@ export function AnggaranClient({
       return;
     }
 
+    const snapshot = localItems;
+    const cat = expenseCategories.find((c) => c.id === selectedKat);
+    const existing = localItems.find((item) => item.idKategori === selectedKat);
+
+    if (existing) {
+      const prog = hitungProgresLokal(batas, existing.terpakai);
+      setLocalItems((prev) =>
+        prev.map((item) =>
+          item.idKategori === selectedKat ? { ...item, ...prog } : item
+        )
+      );
+    } else {
+      const terpakaiAwal = cat?.terpakai ?? 0;
+      const prog = hitungProgresLokal(batas, terpakaiAwal);
+      const optimisItem: AnggaranItemView = {
+        id: `temp-${Date.now()}`,
+        idKategori: selectedKat,
+        nama: cat?.nama || 'Kategori',
+        ikon: cat?.ikon || 'Wallet',
+        warna: cat?.warna || '#0B5C46',
+        ...prog,
+      };
+      setLocalItems((prev) => [...prev, optimisItem]);
+    }
+
+    setBatasDigits('');
     setSaving(true);
+    pendingCountRef.current += 1;
+
     const res = await simpanAnggaran({
       id_kategori: selectedKat,
       bulan,
       tahun,
       batas_jumlah: batas,
     });
+
+    pendingCountRef.current = Math.max(0, pendingCountRef.current - 1);
     setSaving(false);
 
     if (!res.ok) {
+      setLocalItems(snapshot);
       showToast(res.message, 'error');
       return;
     }
 
-    setBatasDigits('');
     showToast(res.message, 'success');
   }
 
   async function handleDelete(id: string) {
-    const res = await hapusAnggaran(id);
+    if (id.startsWith('temp-')) return;
+    if (deleteLockRef.current[id]) return;
+
+    deleteLockRef.current[id] = true;
+    const snapshot = localItems;
     setDeletingId(null);
+    setRemovingIds((prev) => ({ ...prev, [id]: true }));
+
+    window.setTimeout(() => {
+      setLocalItems((prev) => prev.filter((item) => item.id !== id));
+      setRemovingIds((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+    }, 180);
+
+    pendingCountRef.current += 1;
+    const res = await hapusAnggaran(id);
+    pendingCountRef.current = Math.max(0, pendingCountRef.current - 1);
+    delete deleteLockRef.current[id];
+
     if (!res.ok) {
+      setRemovingIds((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      setLocalItems(snapshot);
       showToast(res.message, 'error');
       return;
     }
+
     showToast(res.message, 'success');
   }
 
@@ -113,14 +198,18 @@ export function AnggaranClient({
           />
         </div>
 
-        <button type="submit" disabled={saving} className="fn-btn fn-btn-primary shrink-0">
+        <button
+          type="submit"
+          disabled={saving}
+          className="fn-btn fn-btn-primary shrink-0 active:scale-95 transition-transform"
+        >
           <Plus size={18} weight="bold" />
           <span>{saving ? 'Menyimpan...' : 'Simpan batas'}</span>
         </button>
       </form>
 
       {/* Kartu Anggaran per Kategori */}
-      {items.length === 0 ? (
+      {localItems.length === 0 ? (
         <div className="fn-card p-8 text-center">
           <p className="fn-display text-lg font-semibold">
             Belum ada anggaran untuk {getNamaBulan(bulan)} {tahun}
@@ -131,7 +220,9 @@ export function AnggaranClient({
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {items.map((item) => {
+          {localItems.map((item) => {
+            const isRemoving = Boolean(removingIds[item.id]);
+            const isTemp = item.id.startsWith('temp-');
             const barColor =
               item.status === 'terlampaui'
                 ? 'var(--danger)'
@@ -140,7 +231,12 @@ export function AnggaranClient({
                   : 'var(--primary)';
 
             return (
-              <article key={item.id} className="fn-card p-5 flex flex-col gap-3.5">
+              <article
+                key={item.id}
+                className={`fn-card p-5 flex flex-col gap-3.5 transition-all duration-200 ${
+                  isRemoving ? 'opacity-0 scale-95 pointer-events-none' : 'opacity-100 scale-100'
+                }`}
+              >
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
                     <CategoryIconChip ikon={item.ikon} warna={item.warna} size={40} />
@@ -153,11 +249,11 @@ export function AnggaranClient({
                   </div>
 
                   {deletingId === item.id ? (
-                    <div className="flex items-center gap-1 shrink-0">
+                    <div className="flex items-center gap-1.5 shrink-0">
                       <button
                         type="button"
                         onClick={() => handleDelete(item.id)}
-                        className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white cursor-pointer"
+                        className="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white cursor-pointer active:scale-95 transition-transform"
                         style={{ backgroundColor: 'var(--danger)' }}
                       >
                         Hapus
@@ -165,7 +261,7 @@ export function AnggaranClient({
                       <button
                         type="button"
                         onClick={() => setDeletingId(null)}
-                        className="px-2 py-1.5 rounded-lg text-xs font-semibold border cursor-pointer"
+                        className="px-2 py-1.5 rounded-lg text-xs font-semibold border cursor-pointer active:scale-95 transition-transform"
                         style={{ borderColor: 'var(--border)' }}
                       >
                         Batal
@@ -174,9 +270,10 @@ export function AnggaranClient({
                   ) : (
                     <button
                       type="button"
+                      disabled={isTemp}
                       onClick={() => setDeletingId(item.id)}
                       aria-label={`Hapus anggaran ${item.nama}`}
-                      className="p-2 rounded-xl border hover:opacity-80 cursor-pointer shrink-0"
+                      className="p-2 rounded-xl border hover:opacity-80 active:scale-95 transition-all duration-150 cursor-pointer shrink-0 disabled:opacity-40 disabled:pointer-events-none"
                       style={{ borderColor: 'var(--border)', color: 'var(--danger)' }}
                     >
                       <Trash size={16} />
