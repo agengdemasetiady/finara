@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { mintaAturUlangSandi } from '@/lib/actions/auth';
+import { createClient } from '@/lib/supabase/client';
+import { lupaSandiSchema } from '@/lib/validation/schemas';
 
 export default function LupaSandiPage() {
   const [email, setEmail] = useState('');
@@ -11,10 +12,41 @@ export default function LupaSandiPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (loading) return;
+
+    const parsed = lupaSandiSchema.safeParse({ email });
+    if (!parsed.success) {
+      setStatus({
+        ok: false,
+        message: parsed.error.issues[0]?.message || 'Format email belum benar.',
+      });
+      return;
+    }
+
     setLoading(true);
-    const res = await mintaAturUlangSandi({ email });
+    setStatus(null);
+
+    const supabase = createClient();
+    const origin = window.location.origin;
+
+    const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
+      redirectTo: `${origin}/api/auth/callback?next=/atur-ulang-sandi`,
+    });
+
     setLoading(false);
-    setStatus(res);
+
+    if (error) {
+      setStatus({
+        ok: false,
+        message: 'Gagal mengirim tautan atur ulang kata sandi.',
+      });
+      return;
+    }
+
+    setStatus({
+      ok: true,
+      message: 'Jika email terdaftar, tautan atur ulang kata sandi telah kami kirim.',
+    });
   }
 
   return (
