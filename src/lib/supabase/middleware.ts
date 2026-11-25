@@ -35,6 +35,19 @@ function applySecurityHeaders(response: NextResponse, isProtected: boolean) {
 }
 
 export async function updateSession(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+
+  if (pathname === '/' && request.nextUrl.searchParams.has('code')) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/api/auth/callback';
+    if (!url.searchParams.has('next')) {
+      url.searchParams.set('next', '/atur-ulang-sandi');
+    }
+    const redirectRes = NextResponse.redirect(url);
+    applySecurityHeaders(redirectRes, false);
+    return redirectRes;
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   });
@@ -64,7 +77,6 @@ export async function updateSession(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const pathname = request.nextUrl.pathname;
   const isProtected = PROTECTED_ROUTES.some(
     (r) => pathname === r || pathname.startsWith(`${r}/`)
   );
