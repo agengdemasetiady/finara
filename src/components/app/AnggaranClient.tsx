@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Plus, Trash, Warning } from '@phosphor-icons/react';
 import { simpanAnggaran, hapusAnggaran } from '@/lib/actions/anggaran';
 import { useToast } from '@/components/ui/ToastProvider';
@@ -37,6 +38,55 @@ function hitungProgresLokal(batas: number, terpakai: number) {
   return { batas, terpakai, sisa, persentase, status };
 }
 
+function AnggaranCardSkeleton() {
+  return (
+    <article
+      aria-hidden="true"
+      className="fn-card p-5 flex flex-col gap-3.5 animate-pulse"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div
+            className="w-10 h-10 rounded-2xl shrink-0"
+            style={{ backgroundColor: 'var(--primary-soft)' }}
+          />
+          <div className="flex flex-col gap-2 flex-1 max-w-[190px]">
+            <div
+              className="h-4 w-28 rounded-md"
+              style={{ backgroundColor: 'var(--primary-soft)' }}
+            />
+            <div
+              className="h-3 w-40 rounded-md"
+              style={{ backgroundColor: 'var(--primary-soft)' }}
+            />
+          </div>
+        </div>
+        <div
+          className="w-8 h-8 rounded-xl shrink-0"
+          style={{ backgroundColor: 'var(--primary-soft)' }}
+        />
+      </div>
+
+      <div>
+        <div className="flex justify-between mb-2">
+          <div
+            className="h-3 w-20 rounded-md"
+            style={{ backgroundColor: 'var(--primary-soft)' }}
+          />
+          <div
+            className="h-3 w-24 rounded-md"
+            style={{ backgroundColor: 'var(--primary-soft)' }}
+          />
+        </div>
+        <div
+          className="h-2.5 w-full rounded-full"
+          style={{ backgroundColor: 'var(--primary-soft)' }}
+        />
+      </div>
+    </article>
+  );
+}
+
 export function AnggaranClient({
   bulan,
   tahun,
@@ -48,9 +98,12 @@ export function AnggaranClient({
   items: AnggaranItemView[];
   expenseCategories: ExpenseCategoryOption[];
 }) {
+  const router = useRouter();
   const { showToast } = useToast();
   const [localItems, setLocalItems] = useState<AnggaranItemView[]>(items);
   const [removingIds, setRemovingIds] = useState<Record<string, boolean>>({});
+  const [pendingSkeletons, setPendingSkeletons] = useState<string[]>([]);
+  const [updatingKatIds, setUpdatingKatIds] = useState<Record<string, boolean>>({});
   const pendingCountRef = useRef(0);
   const deleteLockRef = useRef<Record<string, boolean>>({});
 
@@ -78,37 +131,23 @@ export function AnggaranClient({
       return;
     }
 
-    const snapshot = localItems;
-    const cat = expenseCategories.find((c) => c.id === selectedKat);
-    const existing = localItems.find((item) => item.idKategori === selectedKat);
-
-    if (existing) {
-      const prog = hitungProgresLokal(batas, existing.terpakai);
-      setLocalItems((prev) =>
-        prev.map((item) =>
-          item.idKategori === selectedKat ? { ...item, ...prog } : item
-        )
-      );
-    } else {
-      const terpakaiAwal = cat?.terpakai ?? 0;
-      const prog = hitungProgresLokal(batas, terpakaiAwal);
-      const optimisItem: AnggaranItemView = {
-        id: `temp-${Date.now()}`,
-        idKategori: selectedKat,
-        nama: cat?.nama || 'Kategori',
-        ikon: cat?.ikon || 'Wallet',
-        warna: cat?.warna || '#0B5C46',
-        ...prog,
-      };
-      setLocalItems((prev) => [...prev, optimisItem]);
-    }
+    const targetKat = selectedKat;
+    const cat = expenseCategories.find((c) => c.id === targetKat);
+    const existing = localItems.find((item) => item.idKategori === targetKat);
+    const skeletonId = `skeleton-${Date.now()}`;
 
     setBatasDigits('');
     setSaving(true);
     pendingCountRef.current += 1;
 
+    if (existing) {
+      setUpdatingKatIds((prev) => ({ ...prev, [targetKat]: true }));
+    } else {
+      setPendingSkeletons((prev) => [...prev, skeletonId]);
+    }
+
     const res = await simpanAnggaran({
-      id_kategori: selectedKat,
+      id_kategori: targetKat,
       bulan,
       tahun,
       batas_jumlah: batas,
@@ -117,12 +156,43 @@ export function AnggaranClient({
     pendingCountRef.current = Math.max(0, pendingCountRef.current - 1);
     setSaving(false);
 
+    if (existing) {
+      setUpdatingKatIds((prev) => {
+        const next = { ...prev };
+        delete next[targetKat];
+        return next;
+      });
+    } else {
+      setPendingSkeletons((prev) => prev.filter((id) => id !== skeletonId));
+    }
+
     if (!res.ok) {
-      setLocalItems(snapshot);
       showToast(res.message, 'error');
       return;
     }
 
+    if (existing) {
+      const prog = hitungProgresLokal(batas, existing.terpakai);
+      setLocalItems((prev) =>
+        prev.map((item) =>
+          item.idKategori === targetKat ? { ...item, ...prog } : item
+        )
+      );
+    } else {
+      const terpakaiAwal = cat?.terpakai ?? 0;
+      const prog = hitungProgresLokal(batas, terpakaiAwal);
+      const savedItem: AnggaranItemView = {
+        id: `temp-${Date.now()}`,
+        idKategori: targetKat,
+        nama: cat?.nama || 'Kategori',
+        ikon: cat?.ikon || 'Wallet',
+        warna: cat?.warna || '#0B5C46',
+        ...prog,
+      };
+      setLocalItems((prev) => [...prev, savedItem]);
+    }
+
+    router.refresh();
     showToast(res.message, 'success');
   }
 
@@ -134,6 +204,7 @@ export function AnggaranClient({
     const snapshot = localItems;
     setDeletingId(null);
     setRemovingIds((prev) => ({ ...prev, [id]: true }));
+    showToast('Anggaran dihapus.', 'success');
 
     window.setTimeout(() => {
       setLocalItems((prev) => prev.filter((item) => item.id !== id));
@@ -160,8 +231,10 @@ export function AnggaranClient({
       return;
     }
 
-    showToast(res.message, 'success');
+    router.refresh();
   }
+
+  const hasCards = localItems.length > 0 || pendingSkeletons.length > 0;
 
   return (
     <div className="flex flex-col gap-5">
@@ -209,7 +282,7 @@ export function AnggaranClient({
       </form>
 
       {/* Kartu Anggaran per Kategori */}
-      {localItems.length === 0 ? (
+      {!hasCards ? (
         <div className="fn-card p-8 text-center">
           <p className="fn-display text-lg font-semibold">
             Belum ada anggaran untuk {getNamaBulan(bulan)} {tahun}
@@ -221,6 +294,10 @@ export function AnggaranClient({
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {localItems.map((item) => {
+            if (updatingKatIds[item.idKategori]) {
+              return <AnggaranCardSkeleton key={item.id} />;
+            }
+
             const isRemoving = Boolean(removingIds[item.id]);
             const isTemp = item.id.startsWith('temp-');
             const barColor =
@@ -323,6 +400,10 @@ export function AnggaranClient({
               </article>
             );
           })}
+
+          {pendingSkeletons.map((skeletonId) => (
+            <AnggaranCardSkeleton key={skeletonId} />
+          ))}
         </div>
       )}
     </div>
