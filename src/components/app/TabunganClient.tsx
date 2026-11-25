@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   PiggyBank,
   Plus,
@@ -28,10 +29,76 @@ export interface TargetTabunganView {
   setoran: Array<{ id: string; jumlah: number; tanggal: string }>;
 }
 
+function TabunganCardSkeleton() {
+  return (
+    <article
+      aria-hidden="true"
+      className="fn-card p-5 flex flex-col justify-between gap-4 animate-pulse"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div
+            className="w-11 h-11 rounded-2xl shrink-0"
+            style={{ backgroundColor: 'var(--primary-soft)' }}
+          />
+          <div className="flex flex-col gap-2 flex-1 max-w-[180px]">
+            <div
+              className="h-4 w-32 rounded-md"
+              style={{ backgroundColor: 'var(--primary-soft)' }}
+            />
+            <div
+              className="h-3 w-24 rounded-md"
+              style={{ backgroundColor: 'var(--primary-soft)' }}
+            />
+          </div>
+        </div>
+        <div
+          className="w-8 h-8 rounded-xl shrink-0"
+          style={{ backgroundColor: 'var(--primary-soft)' }}
+        />
+      </div>
+
+      <div>
+        <div
+          className="h-7 w-44 rounded-lg"
+          style={{ backgroundColor: 'var(--primary-soft)' }}
+        />
+        <div
+          className="h-2.5 w-full rounded-full mt-3"
+          style={{ backgroundColor: 'var(--primary-soft)' }}
+        />
+        <div className="flex justify-between mt-2">
+          <div
+            className="h-3 w-20 rounded-md"
+            style={{ backgroundColor: 'var(--primary-soft)' }}
+          />
+          <div
+            className="h-3 w-24 rounded-md"
+            style={{ backgroundColor: 'var(--primary-soft)' }}
+          />
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 pt-1">
+        <div
+          className="h-9 flex-1 rounded-xl"
+          style={{ backgroundColor: 'var(--primary-soft)' }}
+        />
+        <div
+          className="h-9 w-28 rounded-xl"
+          style={{ backgroundColor: 'var(--primary-soft)' }}
+        />
+      </div>
+    </article>
+  );
+}
+
 export function TabunganClient({ targets }: { targets: TargetTabunganView[] }) {
+  const router = useRouter();
   const { showToast } = useToast();
   const [localTargets, setLocalTargets] = useState<TargetTabunganView[]>(targets);
   const [removingIds, setRemovingIds] = useState<Record<string, boolean>>({});
+  const [pendingSkeletons, setPendingSkeletons] = useState<string[]>([]);
   const pendingCountRef = useRef(0);
   const deleteLockRef = useRef<Record<string, boolean>>({});
 
@@ -69,9 +136,31 @@ export function TabunganClient({ targets }: { targets: TargetTabunganView[] }) {
 
     const namaTrim = nama.trim();
     const tanggalVal = tenggat || null;
-    const snapshot = localTargets;
+    const skeletonId = `skeleton-${Date.now()}`;
 
-    const optimisTarget: TargetTabunganView = {
+    setNama('');
+    setTargetDigits('');
+    setTenggat('');
+    setCreating(true);
+    setPendingSkeletons((prev) => [...prev, skeletonId]);
+    pendingCountRef.current += 1;
+
+    const res = await buatTargetTabungan({
+      nama: namaTrim,
+      target_jumlah: targetJumlah,
+      tanggal: tanggalVal,
+    });
+
+    pendingCountRef.current = Math.max(0, pendingCountRef.current - 1);
+    setCreating(false);
+    setPendingSkeletons((prev) => prev.filter((id) => id !== skeletonId));
+
+    if (!res.ok) {
+      showToast(res.message, 'error');
+      return;
+    }
+
+    const savedTarget: TargetTabunganView = {
       id: `temp-${Date.now()}`,
       nama: namaTrim,
       targetJumlah,
@@ -83,28 +172,8 @@ export function TabunganClient({ targets }: { targets: TargetTabunganView[] }) {
       setoran: [],
     };
 
-    setLocalTargets((prev) => [...prev, optimisTarget]);
-    setNama('');
-    setTargetDigits('');
-    setTenggat('');
-    setCreating(true);
-    pendingCountRef.current += 1;
-
-    const res = await buatTargetTabungan({
-      nama: namaTrim,
-      target_jumlah: targetJumlah,
-      tanggal: tanggalVal,
-    });
-
-    pendingCountRef.current = Math.max(0, pendingCountRef.current - 1);
-    setCreating(false);
-
-    if (!res.ok) {
-      setLocalTargets(snapshot);
-      showToast(res.message, 'error');
-      return;
-    }
-
+    setLocalTargets((prev) => [...prev, savedTarget]);
+    router.refresh();
     showToast(res.message, 'success');
   }
 
@@ -161,6 +230,7 @@ export function TabunganClient({ targets }: { targets: TargetTabunganView[] }) {
       return;
     }
 
+    router.refresh();
     showToast(res.message, 'success');
   }
 
@@ -172,6 +242,7 @@ export function TabunganClient({ targets }: { targets: TargetTabunganView[] }) {
     const snapshot = localTargets;
     setDeletingId(null);
     setRemovingIds((prev) => ({ ...prev, [id]: true }));
+    showToast('Target tabungan dihapus.', 'success');
 
     window.setTimeout(() => {
       setLocalTargets((prev) => prev.filter((item) => item.id !== id));
@@ -198,8 +269,10 @@ export function TabunganClient({ targets }: { targets: TargetTabunganView[] }) {
       return;
     }
 
-    showToast(res.message, 'success');
+    router.refresh();
   }
+
+  const hasCards = localTargets.length > 0 || pendingSkeletons.length > 0;
 
   return (
     <div className="flex flex-col gap-5">
@@ -255,7 +328,7 @@ export function TabunganClient({ targets }: { targets: TargetTabunganView[] }) {
       </form>
 
       {/* Kartu Kantong Tabungan */}
-      {localTargets.length === 0 ? (
+      {!hasCards ? (
         <div className="fn-card p-8 text-center">
           <p className="fn-display text-lg font-semibold">Belum ada target tabungan</p>
           <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>
@@ -378,6 +451,10 @@ export function TabunganClient({ targets }: { targets: TargetTabunganView[] }) {
               </article>
             );
           })}
+
+          {pendingSkeletons.map((skeletonId) => (
+            <TabunganCardSkeleton key={skeletonId} />
+          ))}
         </div>
       )}
 
