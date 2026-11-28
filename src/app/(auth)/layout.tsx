@@ -3,7 +3,7 @@ import Link from 'next/link';
 import './auth.css';
 
 export const metadata: Metadata = {
-  title: 'Akun — Finara',
+  title: 'Akun - Finara',
   description: 'Masuk atau buat akun Finara untuk mengelola catatan keuanganmu.',
   icons: {
     icon: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230B5C46'/%3E%3Ctext x='18' y='47' font-family='system-ui,sans-serif' font-weight='700' font-size='40' fill='%23fff'%3Ef%3C/text%3E%3Ccircle cx='45' cy='43' r='5' fill='%23F2B33D'/%3E%3C/svg%3E",
@@ -54,7 +54,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <main className="max-w-md w-full mx-auto my-8">{children}</main>
 
         <footer className="max-w-md w-full mx-auto text-center text-xs" style={{ color: 'var(--muted)' }}>
-          Finara — Alat bantu edukasi dan perencanaan keuangan.
+          Finara - Aplikasi pencatatan dan perencanaan keuangan harian
         </footer>
       </body>
     </html>

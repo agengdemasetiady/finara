@@ -2,14 +2,14 @@ import type { Metadata } from 'next';
 import './landing.css';
 
 export const metadata: Metadata = {
-  title: 'Finara — Uangmu jelas, bulananmu aman.',
+  title: 'Finara - Uangmu jelas, bulananmu aman',
   description:
-    'Finara membantu pelajar, anak kos, dan pelaku UMKM mencatat uang masuk dan keluar, menjaga anggaran, lalu menjelaskan ke mana uangmu pergi dengan bahasa yang mudah dipahami.',
+    'Finara membantu pelajar, anak kos, dan pelaku UMKM mencatat uang masuk dan keluar, menjaga anggaran, lalu menjelaskan ke mana uangmu pergi',
   openGraph: {
     type: 'website',
-    title: 'Finara — Uangmu jelas, bulananmu aman.',
+    title: 'Finara - Uangmu jelas, bulananmu aman',
     description:
-      'Catat uang masuk dan keluar, jaga anggaran, dan pahami ke mana uangmu pergi. Untuk pelajar, anak kos, dan pelaku UMKM.',
+      'Catat uang masuk dan keluar, jaga anggaran, dan pahami ke mana uangmu pergi. Untuk pelajar, anak kos, dan pelaku UMKM',
     locale: 'id_ID',
   },
   icons: {

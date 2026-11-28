@@ -14,7 +14,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: 'Aplikasi — Finara',
+  title: 'Dashboard - Finara',
   description: 'Catat transaksi, jaga anggaran, dan pantau insight keuanganmu.',
   icons: {
     icon: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%230B5C46'/%3E%3Ctext x='18' y='47' font-family='system-ui,sans-serif' font-weight='700' font-size='40' fill='%23fff'%3Ef%3C/text%3E%3Ccircle cx='45' cy='43' r='5' fill='%23F2B33D'/%3E%3C/svg%3E",
